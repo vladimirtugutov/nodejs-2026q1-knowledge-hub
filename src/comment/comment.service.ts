@@ -25,7 +25,9 @@ export class CommentService {
     query: QueryCommentDto,
   ): Promise<Comment[] | PaginatedResponseDto<Comment>> {
     let comments = await this.commentRepository.findAll();
-    comments = comments.filter((comment) => comment.articleId === query.articleId);
+    comments = comments.filter(
+      (comment) => comment.articleId === query.articleId,
+    );
 
     const allowedSortFields = ['content', 'createdAt'];
     if (query?.sortBy && allowedSortFields.includes(query.sortBy)) {
@@ -56,7 +58,9 @@ export class CommentService {
   }
 
   async create(createCommentDto: CreateCommentDto): Promise<Comment> {
-    const articleExists = await this.articleService.exists(createCommentDto.articleId);
+    const articleExists = await this.articleService.exists(
+      createCommentDto.articleId,
+    );
 
     if (!articleExists) {
       throw new UnprocessableEntityException(

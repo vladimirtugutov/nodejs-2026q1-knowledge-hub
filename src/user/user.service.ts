@@ -8,6 +8,7 @@ import {
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import { UserResponse } from './entities/user.entity';
+import { excludePassword } from './utils/user.utils';
 import { UserRepository } from './user.repository';
 import { ArticleService } from '../article/article.service';
 import { CommentService } from '../comment/comment.service';
@@ -29,7 +30,7 @@ export class UserService {
     query?: PaginationDto & { sortBy?: string; order?: 'asc' | 'desc' },
   ): Promise<UserResponse[] | PaginatedResponseDto<UserResponse>> {
     const users = await this.userRepository.findAll();
-    let sanitizedUsers = users.map(({ password, ...user }) => user);
+    let sanitizedUsers = users.map(excludePassword);
 
     const allowedSortFields = ['login', 'role', 'createdAt', 'updatedAt'];
     if (query?.sortBy && allowedSortFields.includes(query.sortBy)) {
@@ -60,8 +61,7 @@ export class UserService {
       throw new NotFoundException(`User with id ${id} not found`);
     }
 
-    const { password, ...response } = user;
-    return response;
+    return excludePassword(user);
   }
 
   async create(createUserDto: CreateUserDto): Promise<UserResponse> {
@@ -71,8 +71,7 @@ export class UserService {
       role: createUserDto.role ?? 'viewer',
     });
 
-    const { password, ...response } = user;
-    return response;
+    return excludePassword(user);
   }
 
   async updatePassword(
@@ -97,8 +96,7 @@ export class UserService {
       throw new NotFoundException(`User with id ${id} not found`);
     }
 
-    const { password, ...response } = updatedUser;
-    return response;
+    return excludePassword(updatedUser);
   }
 
   async remove(id: string): Promise<void> {

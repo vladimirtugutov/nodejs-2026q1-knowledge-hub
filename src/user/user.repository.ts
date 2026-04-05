@@ -14,7 +14,9 @@ export class UserRepository {
     return this.users.find((user) => user.id === id) ?? null;
   }
 
-  async create(userData: Omit<User, 'id' | 'createdAt' | 'updatedAt'>): Promise<User> {
+  async create(
+    userData: Omit<User, 'id' | 'createdAt' | 'updatedAt'>,
+  ): Promise<User> {
     const user: User = {
       id: randomUUID(),
       ...userData,
@@ -30,7 +32,11 @@ export class UserRepository {
     const index = this.users.findIndex((u) => u.id === id);
     if (index === -1) return null;
 
-    this.users[index] = { ...this.users[index], ...userData, updatedAt: Date.now() };
+    this.users[index] = {
+      ...this.users[index],
+      ...userData,
+      updatedAt: Date.now(),
+    };
     return this.users[index];
   }
 

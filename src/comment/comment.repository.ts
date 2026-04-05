@@ -39,6 +39,8 @@ export class CommentRepository {
   }
 
   async removeMany(ids: string[]): Promise<void> {
-    this.comments = this.comments.filter((comment) => !ids.includes(comment.id));
+    this.comments = this.comments.filter(
+      (comment) => !ids.includes(comment.id),
+    );
   }
 }

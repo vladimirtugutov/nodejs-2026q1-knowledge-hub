@@ -58,7 +58,10 @@ export class CategoryService {
     return this.categoryRepository.create(createCategoryDto);
   }
 
-  async update(id: string, updateCategoryDto: UpdateCategoryDto): Promise<Category> {
+  async update(
+    id: string,
+    updateCategoryDto: UpdateCategoryDto,
+  ): Promise<Category> {
     const category = await this.categoryRepository.findOne(id);
 
     if (!category) {

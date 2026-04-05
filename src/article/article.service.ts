@@ -10,7 +10,6 @@ import { UpdateArticleDto } from './dto/update-article.dto';
 import { QueryArticleDto } from './dto/query-article.dto';
 import { Article } from './entities/article.entity';
 import { CommentService } from '../comment/comment.service';
-import { PaginationDto } from '../common/dto/pagination.dto';
 import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
 import { sortItems } from '../common/utils/sort.util';
 
@@ -24,9 +23,7 @@ export class ArticleService {
 
   async findAll(
     query?: QueryArticleDto,
-  ): Promise<
-    Article[] | PaginatedResponseDto<Article>
-  > {
+  ): Promise<Article[] | PaginatedResponseDto<Article>> {
     let articles = await this.articleRepository.findAll();
 
     if (query?.status) {
@@ -40,9 +37,7 @@ export class ArticleService {
     }
 
     if (query?.tag) {
-      articles = articles.filter((article) =>
-        article.tags.includes(query.tag),
-      );
+      articles = articles.filter((article) => article.tags.includes(query.tag));
     }
 
     const allowedSortFields = ['title', 'status', 'createdAt', 'updatedAt'];
@@ -84,7 +79,10 @@ export class ArticleService {
     });
   }
 
-  async update(id: string, updateArticleDto: UpdateArticleDto): Promise<Article> {
+  async update(
+    id: string,
+    updateArticleDto: UpdateArticleDto,
+  ): Promise<Article> {
     const article = await this.articleRepository.findOne(id);
 
     if (!article) {
@@ -115,7 +113,9 @@ export class ArticleService {
 
   async nullifyAuthorByUserId(userId: string): Promise<void> {
     const articles = await this.articleRepository.findAll();
-    const relatedArticles = articles.filter((article) => article.authorId === userId);
+    const relatedArticles = articles.filter(
+      (article) => article.authorId === userId,
+    );
 
     await Promise.all(
       relatedArticles.map((article) =>
