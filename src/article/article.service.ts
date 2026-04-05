@@ -10,6 +10,8 @@ import { UpdateArticleDto } from './dto/update-article.dto';
 import { QueryArticleDto } from './dto/query-article.dto';
 import { Article } from './entities/article.entity';
 import { CommentService } from '../comment/comment.service';
+import { PaginationDto } from '../common/dto/pagination.dto';
+import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
 
 @Injectable()
 export class ArticleService {
@@ -18,8 +20,10 @@ export class ArticleService {
     @Inject(forwardRef(() => CommentService))
     private readonly commentService: CommentService,
   ) {}
-
-  async findAll(query?: QueryArticleDto): Promise<Article[]> {
+  
+  async findAll(
+    query?: QueryArticleDto,
+  ): Promise<Article[] | { total: number; page: number; limit: number; data: Article[] }> {
     let articles = await this.articleRepository.findAll();
 
     if (query?.status) {
@@ -34,11 +38,21 @@ export class ArticleService {
 
     if (query?.tag) {
       articles = articles.filter((article) =>
-        article.tags.includes(query.tag as string),
+        article.tags.includes(query.tag),
       );
     }
 
-    return articles;
+    if (!query?.page && !query?.limit) {
+      return articles;
+    }
+
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const total = articles.length;
+    const skip = (page - 1) * limit;
+    const data = articles.slice(skip, skip + limit);
+
+    return { total, page, limit, data };
   }
 
   async findOne(id: string): Promise<Article> {

@@ -1,9 +1,10 @@
-import { IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
+import { PaginationDto } from '../../common/dto/pagination.dto';
 import { ArticleStatus } from '../../common/enums/article-status.enum';
 
-export class QueryArticleDto {
-  @ApiPropertyOptional({ enum: ArticleStatus })
+export class QueryArticleDto extends PaginationDto {
+  @ApiPropertyOptional()
   @IsOptional()
   @IsEnum(ArticleStatus)
   status?: ArticleStatus;
