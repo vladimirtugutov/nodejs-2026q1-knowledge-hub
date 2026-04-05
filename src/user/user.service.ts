@@ -53,6 +53,10 @@ export class UserService {
     id: string,
     updatePasswordDto: UpdatePasswordDto,
   ): Promise<UserResponse> {
+    if (!updatePasswordDto.oldPassword || !updatePasswordDto.newPassword) {
+      throw new NotFoundException(`User with id ${id} not found`);
+    }
+
     const user = await this.userRepository.findOne(id);
 
     if (!user) {
