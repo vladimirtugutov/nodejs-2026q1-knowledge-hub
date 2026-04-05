@@ -1,13 +1,12 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
 import { PaginationDto } from '../../common/dto/pagination.dto';
-import { ArticleStatus } from '../../common/enums/article-status.enum';
 
 export class QueryArticleDto extends PaginationDto {
   @ApiPropertyOptional()
   @IsOptional()
-  @IsEnum(ArticleStatus)
-  status?: ArticleStatus;
+  @IsString()
+  status?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -18,4 +17,14 @@ export class QueryArticleDto extends PaginationDto {
   @IsOptional()
   @IsString()
   tag?: string;
+
+  @ApiPropertyOptional({ example: 'createdAt' })
+  @IsOptional()
+  @IsString()
+  sortBy?: string;
+
+  @ApiPropertyOptional({ example: 'asc', enum: ['asc', 'desc'] })
+  @IsOptional()
+  @IsEnum(['asc', 'desc'])
+  order?: 'asc' | 'desc';
 }

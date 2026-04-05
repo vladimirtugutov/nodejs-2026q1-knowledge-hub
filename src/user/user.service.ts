@@ -12,6 +12,8 @@ import { UserRepository } from './user.repository';
 import { ArticleService } from '../article/article.service';
 import { CommentService } from '../comment/comment.service';
 import { PaginationDto } from '../common/dto/pagination.dto';
+import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
+import { sortItems } from '../common/utils/sort.util';
 
 @Injectable()
 export class UserService {
@@ -24,12 +26,19 @@ export class UserService {
   ) {}
 
   async findAll(
-    query?: PaginationDto,
-  ): Promise<
-    UserResponse[] | { total: number; page: number; limit: number; data: UserResponse[] }
-  > {
+    query?: PaginationDto & { sortBy?: string; order?: 'asc' | 'desc' },
+  ): Promise<UserResponse[] | PaginatedResponseDto<UserResponse>> {
     const users = await this.userRepository.findAll();
-    const sanitizedUsers = users.map(({ password, ...user }) => user);
+    let sanitizedUsers = users.map(({ password, ...user }) => user);
+
+    const allowedSortFields = ['login', 'role', 'createdAt', 'updatedAt'];
+    if (query?.sortBy && allowedSortFields.includes(query.sortBy)) {
+      sanitizedUsers = sortItems(
+        sanitizedUsers,
+        query.sortBy,
+        query.order ?? 'asc',
+      );
+    }
 
     if (!query?.page && !query?.limit) {
       return sanitizedUsers;

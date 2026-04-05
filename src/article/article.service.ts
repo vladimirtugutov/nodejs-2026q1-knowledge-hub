@@ -12,6 +12,7 @@ import { Article } from './entities/article.entity';
 import { CommentService } from '../comment/comment.service';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
+import { sortItems } from '../common/utils/sort.util';
 
 @Injectable()
 export class ArticleService {
@@ -20,10 +21,12 @@ export class ArticleService {
     @Inject(forwardRef(() => CommentService))
     private readonly commentService: CommentService,
   ) {}
-  
+
   async findAll(
     query?: QueryArticleDto,
-  ): Promise<Article[] | { total: number; page: number; limit: number; data: Article[] }> {
+  ): Promise<
+    Article[] | PaginatedResponseDto<Article>
+  > {
     let articles = await this.articleRepository.findAll();
 
     if (query?.status) {
@@ -40,6 +43,11 @@ export class ArticleService {
       articles = articles.filter((article) =>
         article.tags.includes(query.tag),
       );
+    }
+
+    const allowedSortFields = ['title', 'status', 'createdAt', 'updatedAt'];
+    if (query?.sortBy && allowedSortFields.includes(query.sortBy)) {
+      articles = sortItems(articles, query.sortBy, query.order ?? 'asc');
     }
 
     if (!query?.page && !query?.limit) {

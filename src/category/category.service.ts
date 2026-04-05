@@ -10,6 +10,8 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 import { Category } from './entities/category.entity';
 import { ArticleService } from '../article/article.service';
 import { PaginationDto } from '../common/dto/pagination.dto';
+import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
+import { sortItems } from '../common/utils/sort.util';
 
 @Injectable()
 export class CategoryService {
@@ -20,11 +22,14 @@ export class CategoryService {
   ) {}
 
   async findAll(
-    query?: PaginationDto,
-  ): Promise<
-    Category[] | { total: number; page: number; limit: number; data: Category[] }
-  > {
-    const categories = await this.categoryRepository.findAll();
+    query?: PaginationDto & { sortBy?: string; order?: 'asc' | 'desc' },
+  ): Promise<Category[] | PaginatedResponseDto<Category>> {
+    let categories = await this.categoryRepository.findAll();
+
+    const allowedSortFields = ['name', 'description'];
+    if (query?.sortBy && allowedSortFields.includes(query.sortBy)) {
+      categories = sortItems(categories, query.sortBy, query.order ?? 'asc');
+    }
 
     if (!query?.page && !query?.limit) {
       return categories;

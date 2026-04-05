@@ -10,6 +10,8 @@ import { CreateCommentDto } from './dto/create-comment.dto';
 import { QueryCommentDto } from './dto/query-comment.dto';
 import { Comment } from './entities/comment.entity';
 import { ArticleService } from '../article/article.service';
+import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
+import { sortItems } from '../common/utils/sort.util';
 
 @Injectable()
 export class CommentService {
@@ -21,11 +23,14 @@ export class CommentService {
 
   async findByArticleId(
     query: QueryCommentDto,
-  ): Promise<
-    Comment[] | { total: number; page: number; limit: number; data: Comment[] }
-  > {
+  ): Promise<Comment[] | PaginatedResponseDto<Comment>> {
     let comments = await this.commentRepository.findAll();
     comments = comments.filter((comment) => comment.articleId === query.articleId);
+
+    const allowedSortFields = ['content', 'createdAt'];
+    if (query?.sortBy && allowedSortFields.includes(query.sortBy)) {
+      comments = sortItems(comments, query.sortBy, query.order ?? 'asc');
+    }
 
     if (!query.page && !query.limit) {
       return comments;
