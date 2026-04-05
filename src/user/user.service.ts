@@ -11,6 +11,7 @@ import { UserResponse } from './entities/user.entity';
 import { UserRepository } from './user.repository';
 import { ArticleService } from '../article/article.service';
 import { CommentService } from '../comment/comment.service';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Injectable()
 export class UserService {
@@ -22,9 +23,25 @@ export class UserService {
     private readonly commentService: CommentService,
   ) {}
 
-  async findAll(): Promise<UserResponse[]> {
+  async findAll(
+    query?: PaginationDto,
+  ): Promise<
+    UserResponse[] | { total: number; page: number; limit: number; data: UserResponse[] }
+  > {
     const users = await this.userRepository.findAll();
-    return users.map(({ password, ...user }) => user);
+    const sanitizedUsers = users.map(({ password, ...user }) => user);
+
+    if (!query?.page && !query?.limit) {
+      return sanitizedUsers;
+    }
+
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const total = sanitizedUsers.length;
+    const skip = (page - 1) * limit;
+    const data = sanitizedUsers.slice(skip, skip + limit);
+
+    return { total, page, limit, data };
   }
 
   async findOne(id: string): Promise<UserResponse> {
@@ -53,10 +70,6 @@ export class UserService {
     id: string,
     updatePasswordDto: UpdatePasswordDto,
   ): Promise<UserResponse> {
-    if (!updatePasswordDto.oldPassword || !updatePasswordDto.newPassword) {
-      throw new NotFoundException(`User with id ${id} not found`);
-    }
-
     const user = await this.userRepository.findOne(id);
 
     if (!user) {

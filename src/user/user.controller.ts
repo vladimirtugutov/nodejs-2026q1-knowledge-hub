@@ -9,6 +9,7 @@ import {
   ParseUUIDPipe,
   Post,
   Put,
+  Query,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -23,6 +24,7 @@ import {
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @ApiTags('user')
 @Controller('user')
@@ -32,8 +34,8 @@ export class UserController {
   @Get()
   @ApiOperation({ summary: 'Get all users' })
   @ApiOkResponse({ description: 'Users retrieved successfully' })
-  findAll() {
-    return this.userService.findAll();
+  findAll(@Query() query: PaginationDto) {
+    return this.userService.findAll(query);
   }
 
   @Get(':id')

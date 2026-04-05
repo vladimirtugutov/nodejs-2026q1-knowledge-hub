@@ -9,6 +9,7 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { Category } from './entities/category.entity';
 import { ArticleService } from '../article/article.service';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Injectable()
 export class CategoryService {
@@ -18,8 +19,24 @@ export class CategoryService {
     private readonly articleService: ArticleService,
   ) {}
 
-  async findAll(): Promise<Category[]> {
-    return this.categoryRepository.findAll();
+  async findAll(
+    query?: PaginationDto,
+  ): Promise<
+    Category[] | { total: number; page: number; limit: number; data: Category[] }
+  > {
+    const categories = await this.categoryRepository.findAll();
+
+    if (!query?.page && !query?.limit) {
+      return categories;
+    }
+
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const total = categories.length;
+    const skip = (page - 1) * limit;
+    const data = categories.slice(skip, skip + limit);
+
+    return { total, page, limit, data };
   }
 
   async findOne(id: string): Promise<Category> {
