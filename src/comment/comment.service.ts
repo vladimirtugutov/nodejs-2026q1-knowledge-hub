@@ -19,9 +19,25 @@ export class CommentService {
     private readonly articleService: ArticleService,
   ) {}
 
-  async findByArticleId(query: QueryCommentDto): Promise<Comment[]> {
-    const comments = await this.commentRepository.findAll();
-    return comments.filter((comment) => comment.articleId === query.articleId);
+  async findByArticleId(
+    query: QueryCommentDto,
+  ): Promise<
+    Comment[] | { total: number; page: number; limit: number; data: Comment[] }
+  > {
+    let comments = await this.commentRepository.findAll();
+    comments = comments.filter((comment) => comment.articleId === query.articleId);
+
+    if (!query.page && !query.limit) {
+      return comments;
+    }
+
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const total = comments.length;
+    const skip = (page - 1) * limit;
+    const data = comments.slice(skip, skip + limit);
+
+    return { total, page, limit, data };
   }
 
   async findOne(id: string): Promise<Comment> {

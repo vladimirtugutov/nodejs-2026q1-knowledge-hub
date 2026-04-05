@@ -1,7 +1,8 @@
-import { IsUUID } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { IsUUID } from 'class-validator';
+import { PaginationDto } from '../../common/dto/pagination.dto';
 
-export class QueryCommentDto {
+export class QueryCommentDto extends PaginationDto {
   @ApiProperty()
   @IsUUID()
   articleId: string;

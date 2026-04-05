@@ -35,6 +35,8 @@ export class CommentController {
   @ApiOkResponse({ description: 'Comments retrieved successfully' })
   @ApiBadRequestResponse({ description: 'Invalid query params' })
   @ApiQuery({ name: 'articleId', required: true })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
   findByArticleId(@Query() query: QueryCommentDto) {
     return this.commentService.findByArticleId(query);
   }
