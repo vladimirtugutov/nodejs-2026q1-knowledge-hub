@@ -4,14 +4,14 @@ import {
   NotFoundException,
   UnprocessableEntityException,
   forwardRef,
-} from '@nestjs/common';
-import { CommentRepository } from './comment.repository';
-import { CreateCommentDto } from './dto/create-comment.dto';
-import { QueryCommentDto } from './dto/query-comment.dto';
-import { Comment } from './entities/comment.entity';
-import { ArticleService } from '../article/article.service';
-import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
-import { sortItems } from '../common/utils/sort.util';
+} from '@nestjs/common'
+import { CommentRepository } from './comment.repository'
+import { CreateCommentDto } from './dto/create-comment.dto'
+import { QueryCommentDto } from './dto/query-comment.dto'
+import { Comment } from './entities/comment.entity'
+import { ArticleService } from '../article/article.service'
+import { PaginatedResponseDto } from '../common/dto/paginated-response.dto'
+import { sortItems } from '../common/utils/sort.util'
 
 @Injectable()
 export class CommentService {
@@ -24,82 +24,84 @@ export class CommentService {
   async findByArticleId(
     query: QueryCommentDto,
   ): Promise<Comment[] | PaginatedResponseDto<Comment>> {
-    let comments = await this.commentRepository.findAll();
-    comments = comments.filter(
-      (comment) => comment.articleId === query.articleId,
-    );
+    let comments = await this.commentRepository.findAll()
+    comments = comments.filter((comment) => comment.articleId === query.articleId)
 
-    const allowedSortFields = ['content', 'createdAt'];
+    const allowedSortFields = ['content', 'createdAt']
     if (query?.sortBy && allowedSortFields.includes(query.sortBy)) {
-      comments = sortItems(comments, query.sortBy, query.order ?? 'asc');
+      comments = sortItems(comments, query.sortBy, query.order ?? 'asc')
     }
 
     if (!query.page && !query.limit) {
-      return comments;
+      return comments
     }
 
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 10;
-    const total = comments.length;
-    const skip = (page - 1) * limit;
-    const data = comments.slice(skip, skip + limit);
+    const page = query.page ?? 1
+    const limit = query.limit ?? 10
+    const total = comments.length
+    const skip = (page - 1) * limit
+    const data = comments.slice(skip, skip + limit)
 
-    return { total, page, limit, data };
+    return { total, page, limit, data }
   }
 
   async findOne(id: string): Promise<Comment> {
-    const comment = await this.commentRepository.findOne(id);
+    const comment = await this.commentRepository.findOne(id)
 
     if (!comment) {
-      throw new NotFoundException(`Comment with id ${id} not found`);
+      throw new NotFoundException(`Comment with id ${id} not found`)
     }
 
-    return comment;
+    return comment
   }
 
   async create(createCommentDto: CreateCommentDto): Promise<Comment> {
     const articleExists = await this.articleService.exists(
       createCommentDto.articleId,
-    );
+    )
 
     if (!articleExists) {
       throw new UnprocessableEntityException(
         `Article with id ${createCommentDto.articleId} does not exist`,
-      );
+      )
     }
 
     return this.commentRepository.create({
       content: createCommentDto.content,
       articleId: createCommentDto.articleId,
       authorId: createCommentDto.authorId ?? null,
-    });
+    } as Omit<Comment, 'id' | 'createdAt'>)
   }
 
   async remove(id: string): Promise<void> {
-    const comment = await this.commentRepository.findOne(id);
+    const comment = await this.commentRepository.findOne(id)
 
     if (!comment) {
-      throw new NotFoundException(`Comment with id ${id} not found`);
+      throw new NotFoundException(`Comment with id ${id} not found`)
     }
 
-    await this.commentRepository.remove(id);
+    await this.commentRepository.remove(id)
   }
 
   async deleteByArticleId(articleId: string): Promise<void> {
-    const comments = await this.commentRepository.findAll();
+    const comments = await this.commentRepository.findAll()
     const relatedIds = comments
       .filter((comment) => comment.articleId === articleId)
-      .map((comment) => comment.id);
+      .map((comment) => comment.id)
 
-    await this.commentRepository.removeMany(relatedIds);
+    if (relatedIds.length) {
+      await this.commentRepository.removeMany(relatedIds)
+    }
   }
 
   async deleteByAuthorId(authorId: string): Promise<void> {
-    const comments = await this.commentRepository.findAll();
+    const comments = await this.commentRepository.findAll()
     const relatedIds = comments
       .filter((comment) => comment.authorId === authorId)
-      .map((comment) => comment.id);
+      .map((comment) => comment.id)
 
-    await this.commentRepository.removeMany(relatedIds);
+    if (relatedIds.length) {
+      await this.commentRepository.removeMany(relatedIds)
+    }
   }
 }

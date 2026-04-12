@@ -1,7 +1,3 @@
-export interface Comment {
-  id: string;
-  content: string;
-  articleId: string;
-  authorId: string | null;
-  createdAt: number;
-}
+import { Prisma } from '@prisma/client'
+
+export type Comment = Prisma.CommentGetPayload<Record<string, never>>
