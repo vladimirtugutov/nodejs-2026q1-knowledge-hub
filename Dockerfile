@@ -14,9 +14,9 @@ RUN npm run build
 
 
 FROM node:24-alpine AS production
-RUN addgroup -S nodejs && adduser -S nestjs -G nodejs
-
 WORKDIR /app
+
+RUN addgroup -S nodejs && adduser -S nestjs -G nodejs
 
 ENV NODE_ENV=production
 ENV DATABASE_URL=postgresql://postgres:password@db:5432/knowledge_hub?schema=public
@@ -24,16 +24,13 @@ ENV DATABASE_URL=postgresql://postgres:password@db:5432/knowledge_hub?schema=pub
 COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
-COPY prisma ./prisma
-COPY prisma.config.ts ./
+COPY --chown=nestjs:nodejs prisma ./prisma
+COPY --chown=nestjs:nodejs prisma.config.ts ./
 RUN npx prisma generate
 
-COPY --from=builder /app/dist ./dist
-
-RUN chown -R nestjs:nodejs /app
+COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
 
 USER nestjs
-
 EXPOSE 4000
 
 CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/main"]
