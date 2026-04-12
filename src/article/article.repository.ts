@@ -1,64 +1,102 @@
-import { Injectable } from '@nestjs/common';
-import { randomUUID } from 'node:crypto';
-import { Article } from './entities/article.entity';
+import { Injectable } from '@nestjs/common'
+import { Prisma, ArticleStatus } from '@prisma/client'
+import { PrismaService } from '../prisma/prisma.service'
+import { CreateArticleDto } from './dto/create-article.dto'
+import { Article } from './entities/article.entity'
 
 @Injectable()
 export class ArticleRepository {
-  private articles: Article[] = [];
+  constructor(private readonly prisma: PrismaService) {}
 
   async findAll(): Promise<Article[]> {
-    return [...this.articles];
+    return this.prisma.article.findMany({
+      include: {
+        author: true,
+        category: true,
+        tags: true,
+        comments: true,
+      },
+    })
   }
 
   async findOne(id: string): Promise<Article | null> {
-    return this.articles.find((article) => article.id === id) ?? null;
+    return this.prisma.article.findUnique({
+      where: { id },
+      include: {
+        author: true,
+        category: true,
+        tags: true,
+        comments: true,
+      },
+    })
   }
 
-  async create(
-    data: Omit<Article, 'id' | 'createdAt' | 'updatedAt'>,
-  ): Promise<Article> {
-    const now = Date.now();
-
-    const article: Article = {
-      id: randomUUID(),
-      title: data.title,
-      content: data.content,
-      status: data.status ?? 'draft',
-      authorId: data.authorId ?? null,
-      categoryId: data.categoryId ?? null,
-      tags: data.tags ?? [],
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    this.articles.push(article);
-    return article;
+  async create(data: CreateArticleDto): Promise<Article> {
+    return this.prisma.article.create({
+      data: {
+        title: data.title,
+        content: data.content,
+        status: (data.status as ArticleStatus) ?? ArticleStatus.DRAFT,
+        authorId: data.authorId ?? null,
+        categoryId: data.categoryId ?? null,
+        tags: {
+          connectOrCreate: (data.tags ?? []).map((name) => ({
+            where: { name },
+            create: { name },
+          })),
+        },
+      },
+      include: {
+        author: true,
+        category: true,
+        tags: true,
+        comments: true,
+      },
+    })
   }
 
-  async update(id: string, data: Partial<Article>): Promise<Article | null> {
-    const index = this.articles.findIndex((article) => article.id === id);
-
-    if (index === -1) {
-      return null;
-    }
-
-    this.articles[index] = {
-      ...this.articles[index],
-      ...data,
-      updatedAt: Date.now(),
-    };
-
-    return this.articles[index];
+  async update(id: string, data: Partial<CreateArticleDto>): Promise<Article> {
+    return this.prisma.article.update({
+      where: { id },
+      data: {
+        ...(data.title !== undefined ? { title: data.title } : {}),
+        ...(data.content !== undefined ? { content: data.content } : {}),
+        ...(data.status !== undefined
+          ? { status: data.status as ArticleStatus }
+          : {}),
+        ...(data.authorId !== undefined ? { authorId: data.authorId } : {}),
+        ...(data.categoryId !== undefined
+          ? { categoryId: data.categoryId }
+          : {}),
+        ...(data.tags !== undefined
+          ? {
+              tags: {
+                set: [],
+                connectOrCreate: data.tags.map((name) => ({
+                  where: { name },
+                  create: { name },
+                })),
+              },
+            }
+          : {}),
+      },
+      include: {
+        author: true,
+        category: true,
+        tags: true,
+        comments: true,
+      },
+    })
   }
 
   async remove(id: string): Promise<boolean> {
-    const index = this.articles.findIndex((article) => article.id === id);
-
-    if (index === -1) {
-      return false;
+    try {
+      await this.prisma.article.delete({
+        where: { id },
+      })
+      return true
+    } catch {
+      return false
     }
-
-    this.articles.splice(index, 1);
-    return true;
   }
 }

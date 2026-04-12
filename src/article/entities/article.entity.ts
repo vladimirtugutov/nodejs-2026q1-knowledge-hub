@@ -1,11 +1,10 @@
-export interface Article {
-  id: string;
-  title: string;
-  content: string;
-  status: 'draft' | 'published' | 'archived';
-  authorId: string | null;
-  categoryId: string | null;
-  tags: string[];
-  createdAt: number;
-  updatedAt: number;
-}
+import { Prisma } from '@prisma/client'
+
+export type Article = Prisma.ArticleGetPayload<{
+  include: {
+    author: true
+    category: true
+    tags: true
+    comments: true
+  }
+}>
