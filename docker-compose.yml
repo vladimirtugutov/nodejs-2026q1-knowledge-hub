@@ -41,7 +41,7 @@ services:
     restart: unless-stopped
 
   adminer:
-    image: adminer:alpine
+    image: adminer:latest
     container_name: knowledge-hub-adminer
     ports:
       - "8080:8080"
