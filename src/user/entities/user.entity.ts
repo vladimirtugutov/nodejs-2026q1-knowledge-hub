@@ -1,10 +1,4 @@
-export interface User {
-  id: string;
-  login: string;
-  password: string;
-  role: 'admin' | 'editor' | 'viewer';
-  createdAt: number;
-  updatedAt: number;
-}
+import { Prisma } from '@prisma/client'
 
-export interface UserResponse extends Omit<User, 'password'> {}
+export type User = Prisma.UserGetPayload<Record<string, never>>
+export type UserResponse = Omit<User, 'password'>
