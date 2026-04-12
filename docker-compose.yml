@@ -2,7 +2,6 @@ services:
   app:
     build: .
     container_name: knowledge-hub-app
-    command: npm run start:prod
     ports:
       - "4000:4000"
     env_file:
