@@ -1,52 +1,54 @@
-import { Injectable } from '@nestjs/common';
-import { randomUUID } from 'node:crypto';
-import { Category } from './entities/category.entity';
+import { Injectable } from '@nestjs/common'
+import { PrismaService } from '../prisma/prisma.service'
+import { Category } from './entities/category.entity'
 
 @Injectable()
 export class CategoryRepository {
-  private categories: Category[] = [];
+  constructor(private readonly prisma: PrismaService) {}
 
   async findAll(): Promise<Category[]> {
-    return [...this.categories];
+    return this.prisma.category.findMany()
   }
 
   async findOne(id: string): Promise<Category | null> {
-    return this.categories.find((category) => category.id === id) ?? null;
+    return this.prisma.category.findUnique({
+      where: { id },
+    })
   }
 
   async create(data: Omit<Category, 'id'>): Promise<Category> {
-    const category: Category = {
-      id: randomUUID(),
-      ...data,
-    };
-
-    this.categories.push(category);
-    return category;
+    return this.prisma.category.create({
+      data: {
+        name: data.name,
+        description: data.description,
+      },
+    })
   }
 
   async update(id: string, data: Partial<Category>): Promise<Category | null> {
-    const index = this.categories.findIndex((category) => category.id === id);
-
-    if (index === -1) {
-      return null;
+    try {
+      return await this.prisma.category.update({
+        where: { id },
+        data: {
+          ...(data.name !== undefined ? { name: data.name } : {}),
+          ...(data.description !== undefined
+            ? { description: data.description }
+            : {}),
+        },
+      })
+    } catch {
+      return null
     }
-
-    this.categories[index] = {
-      ...this.categories[index],
-      ...data,
-    };
-
-    return this.categories[index];
   }
 
   async remove(id: string): Promise<boolean> {
-    const index = this.categories.findIndex((category) => category.id === id);
-
-    if (index === -1) {
-      return false;
+    try {
+      await this.prisma.category.delete({
+        where: { id },
+      })
+      return true
+    } catch {
+      return false
     }
-
-    this.categories.splice(index, 1);
-    return true;
   }
 }

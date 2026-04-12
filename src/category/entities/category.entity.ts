@@ -1,5 +1,3 @@
-export interface Category {
-  id: string;
-  name: string;
-  description: string;
-}
+import { Prisma } from '@prisma/client'
+
+export type Category = Prisma.CategoryGetPayload<Record<string, never>>
