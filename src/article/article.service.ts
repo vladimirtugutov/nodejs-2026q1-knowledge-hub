@@ -1,17 +1,20 @@
 import {
+  ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
   forwardRef,
 } from '@nestjs/common';
-import { ArticleRepository } from './article.repository';
-import { CreateArticleDto } from './dto/create-article.dto';
-import { UpdateArticleDto } from './dto/update-article.dto';
-import { QueryArticleDto } from './dto/query-article.dto';
-import { Article } from './entities/article.entity';
+import { UserRole } from '@prisma/client';
 import { CommentService } from '../comment/comment.service';
 import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
 import { sortItems } from '../common/utils/sort.util';
+import { JwtPayload } from '../auth/types/jwt-payload.type';
+import { ArticleRepository } from './article.repository';
+import { CreateArticleDto } from './dto/create-article.dto';
+import { QueryArticleDto } from './dto/query-article.dto';
+import { UpdateArticleDto } from './dto/update-article.dto';
+import { Article } from './entities/article.entity';
 
 @Injectable()
 export class ArticleService {
@@ -70,13 +73,20 @@ export class ArticleService {
     return article;
   }
 
-  async create(createArticleDto: CreateArticleDto): Promise<Article> {
-    return this.articleRepository.create(createArticleDto);
+  async create(
+    createArticleDto: CreateArticleDto,
+    user: JwtPayload,
+  ): Promise<Article> {
+    return this.articleRepository.create({
+      ...createArticleDto,
+      authorId: user.userId,
+    });
   }
 
   async update(
     id: string,
     updateArticleDto: UpdateArticleDto,
+    user: JwtPayload,
   ): Promise<Article> {
     const article = await this.articleRepository.findOne(id);
 
@@ -84,7 +94,15 @@ export class ArticleService {
       throw new NotFoundException(`Article with id ${id} not found`);
     }
 
-    return this.articleRepository.update(id, updateArticleDto);
+    if (user.role !== UserRole.ADMIN && article.authorId !== user.userId) {
+      throw new ForbiddenException('You can update only your own articles');
+    }
+
+    const { authorId, ...safeDto } = updateArticleDto as UpdateArticleDto & {
+      authorId?: string | null;
+    };
+
+    return this.articleRepository.update(id, safeDto);
   }
 
   async remove(id: string): Promise<void> {

@@ -1,17 +1,20 @@
 import {
+  ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
   UnprocessableEntityException,
   forwardRef,
 } from '@nestjs/common';
+import { UserRole } from '@prisma/client';
+import { JwtPayload } from '../auth/types/jwt-payload.type';
+import { ArticleService } from '../article/article.service';
+import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
+import { sortItems } from '../common/utils/sort.util';
 import { CommentRepository } from './comment.repository';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { QueryCommentDto } from './dto/query-comment.dto';
 import { Comment } from './entities/comment.entity';
-import { ArticleService } from '../article/article.service';
-import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
-import { sortItems } from '../common/utils/sort.util';
 
 @Injectable()
 export class CommentService {
@@ -57,7 +60,10 @@ export class CommentService {
     return comment;
   }
 
-  async create(createCommentDto: CreateCommentDto): Promise<Comment> {
+  async create(
+    createCommentDto: CreateCommentDto,
+    user: JwtPayload,
+  ): Promise<Comment> {
     const articleExists = await this.articleService.exists(
       createCommentDto.articleId,
     );
@@ -71,15 +77,19 @@ export class CommentService {
     return this.commentRepository.create({
       content: createCommentDto.content,
       articleId: createCommentDto.articleId,
-      authorId: createCommentDto.authorId ?? null,
+      authorId: user.userId,
     } as Omit<Comment, 'id' | 'createdAt'>);
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(id: string, user: JwtPayload): Promise<void> {
     const comment = await this.commentRepository.findOne(id);
 
     if (!comment) {
       throw new NotFoundException(`Comment with id ${id} not found`);
+    }
+
+    if (user.role !== UserRole.ADMIN && comment.authorId !== user.userId) {
+      throw new ForbiddenException('You can delete only your own comments');
     }
 
     await this.commentRepository.remove(id);
