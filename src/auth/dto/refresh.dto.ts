@@ -1,7 +1,7 @@
-import { IsString, MinLength } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 
 export class RefreshDto {
+  @IsOptional()
   @IsString()
-  @MinLength(1)
-  refreshToken: string;
+  refreshToken?: string;
 }

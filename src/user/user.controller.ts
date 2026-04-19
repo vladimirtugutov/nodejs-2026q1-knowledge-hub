@@ -39,7 +39,7 @@ import { UserService } from './user.service';
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  @Roles(UserRole.admin)
+  @Roles(UserRole.viewer, UserRole.editor, UserRole.admin)
   @Get()
   @ApiOperation({ summary: 'Get all users' })
   @ApiOkResponse({ description: 'Users retrieved successfully' })
@@ -49,7 +49,7 @@ export class UserController {
     return this.userService.findAll(query);
   }
 
-  @Roles(UserRole.admin)
+  @Roles(UserRole.viewer, UserRole.editor, UserRole.admin)
   @Get(':id')
   @ApiOperation({ summary: 'Get user by id' })
   @ApiOkResponse({ description: 'User retrieved successfully' })
@@ -72,6 +72,7 @@ export class UserController {
     return this.userService.create(createUserDto);
   }
 
+  @Roles(UserRole.viewer, UserRole.editor, UserRole.admin)
   @Put(':id')
   @ApiOperation({ summary: 'Update user password' })
   @ApiOkResponse({ description: 'User password updated successfully' })

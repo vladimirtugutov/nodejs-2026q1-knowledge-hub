@@ -72,6 +72,11 @@ export class ArticleController {
     @Body() createArticleDto: CreateArticleDto,
     @CurrentUser() user: JwtPayload,
   ) {
+    console.log(
+      'Article create DTO:',
+      JSON.stringify(createArticleDto, null, 2),
+    );
+    console.log('User:', user);
     return this.articleService.create(createArticleDto, user);
   }
 

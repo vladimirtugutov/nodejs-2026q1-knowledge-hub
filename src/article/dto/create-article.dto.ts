@@ -1,38 +1,36 @@
 import {
-  IsArray,
   IsEnum,
+  IsNotEmpty,
   IsOptional,
   IsString,
+  IsArray,
   IsUUID,
-  ValidateIf,
+  Allow,
 } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ArticleStatus } from '../../common/enums/article-status.enum';
 
 export class CreateArticleDto {
-  @ApiProperty({ example: 'TEST_ARTICLE' })
   @IsString()
+  @IsNotEmpty()
   title: string;
 
-  @ApiProperty({ example: 'Test article content' })
   @IsString()
+  @IsNotEmpty()
   content: string;
 
-  @ApiPropertyOptional({
-    enum: ArticleStatus,
-    default: ArticleStatus.DRAFT,
-  })
-  @IsOptional()
   @IsEnum(ArticleStatus)
-  status?: ArticleStatus;
+  status: ArticleStatus;
 
-  @ApiPropertyOptional({ nullable: true, example: null })
+  @Allow() // ← КЛЮЧЕВОЕ! Разрешает null
   @IsOptional()
-  @ValidateIf((_, value) => value !== null)
-  @IsUUID('4')
+  @IsUUID('4', { message: 'authorId must be a valid UUID' })
+  authorId?: string | null;
+
+  @Allow() // ← КЛЮЧЕВОЕ!
+  @IsOptional()
+  @IsUUID('4', { message: 'categoryId must be a valid UUID' })
   categoryId?: string | null;
 
-  @ApiPropertyOptional({ type: [String], default: [] })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })

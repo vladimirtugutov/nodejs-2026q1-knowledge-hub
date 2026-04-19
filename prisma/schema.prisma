@@ -7,7 +7,7 @@ datasource db {
 }
 
 model User {
-  id               String    @id @default(cuid())
+  id               String    @id @default(uuid()) @db.Uuid
   login            String    @unique
   password         String
   role             UserRole  @default(viewer)
@@ -23,7 +23,7 @@ model User {
 }
 
 model Article {
-  id        String     @id @default(cuid())
+  id        String     @id @default(uuid()) @db.Uuid
   title     String
   content   String
   status    ArticleStatus @default(DRAFT)
@@ -43,7 +43,7 @@ model Article {
 }
 
 model Category {
-  id          String   @id @default(cuid())
+  id          String   @id @default(uuid()) @db.Uuid
   name        String   @unique
   description String?
 
@@ -53,7 +53,7 @@ model Category {
 }
 
 model Comment {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid()) @db.Uuid
   content   String
   articleId String
   authorId  String?
@@ -66,7 +66,7 @@ model Comment {
 }
 
 model Tag {
-  id     String   @id @default(cuid())
+  id     String   @id @default(uuid()) @db.Uuid
   name   String   @unique
 
   articles Article[]

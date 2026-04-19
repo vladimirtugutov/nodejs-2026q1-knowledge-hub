@@ -19,14 +19,18 @@ export class AuthController {
   @Public()
   @Post('signup')
   async signup(@Body() dto: SignupDto) {
-    return this.authService.signup(dto);
+    const result = await this.authService.signup(dto);
+
+    return result;
   }
 
   @Public()
   @HttpCode(HttpStatus.OK)
   @Post('login')
   async login(@Body() dto: LoginDto) {
-    return this.authService.login(dto);
+    const result = await this.authService.login(dto);
+
+    return result;
   }
 
   @Public()

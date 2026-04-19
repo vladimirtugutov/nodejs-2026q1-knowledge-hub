@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { ArticleStatus } from '@prisma/client';
+import { ArticleStatus as PrismaArticleStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { QueryArticleDto } from './dto/query-article.dto';
 import { Article } from './entities/article.entity';
 
 export type CreateArticleData = {
@@ -25,8 +26,30 @@ export type UpdateArticleData = {
 export class ArticleRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(): Promise<Article[]> {
+  private mapStatus(status?: string): PrismaArticleStatus | undefined {
+    if (status === undefined) return undefined;
+
+    switch (status) {
+      case 'draft':
+        return PrismaArticleStatus.DRAFT;
+      case 'published':
+        return PrismaArticleStatus.PUBLISHED;
+      case 'archived':
+        return PrismaArticleStatus.ARCHIVED;
+      default:
+        return undefined;
+    }
+  }
+
+  async findAll(query?: QueryArticleDto): Promise<Article[]> {
+    const where: Prisma.ArticleWhereInput = {
+      ...(query?.status ? { status: this.mapStatus(query.status) } : {}),
+      ...(query?.categoryId ? { categoryId: query.categoryId } : {}),
+      ...(query?.tag ? { tags: { some: { name: query.tag } } } : {}),
+    };
+
     return this.prisma.article.findMany({
+      where,
       include: {
         author: true,
         category: true,
@@ -53,15 +76,19 @@ export class ArticleRepository {
       data: {
         title: data.title,
         content: data.content,
-        status: (data.status as ArticleStatus) ?? ArticleStatus.DRAFT,
+        status: this.mapStatus(data.status) ?? PrismaArticleStatus.DRAFT,
         authorId: data.authorId ?? null,
         categoryId: data.categoryId ?? null,
-        tags: {
-          connectOrCreate: (data.tags ?? []).map((name) => ({
-            where: { name },
-            create: { name },
-          })),
-        },
+        ...(data.tags && data.tags.length > 0
+          ? {
+              tags: {
+                connectOrCreate: data.tags.map((name) => ({
+                  where: { name },
+                  create: { name },
+                })),
+              },
+            }
+          : {}),
       },
       include: {
         author: true,
@@ -79,7 +106,7 @@ export class ArticleRepository {
         ...(data.title !== undefined ? { title: data.title } : {}),
         ...(data.content !== undefined ? { content: data.content } : {}),
         ...(data.status !== undefined
-          ? { status: data.status as ArticleStatus }
+          ? { status: this.mapStatus(data.status) }
           : {}),
         ...(data.authorId !== undefined ? { authorId: data.authorId } : {}),
         ...(data.categoryId !== undefined
@@ -89,10 +116,14 @@ export class ArticleRepository {
           ? {
               tags: {
                 set: [],
-                connectOrCreate: data.tags.map((name) => ({
-                  where: { name },
-                  create: { name },
-                })),
+                ...(data.tags.length > 0
+                  ? {
+                      connectOrCreate: data.tags.map((name) => ({
+                        where: { name },
+                        create: { name },
+                      })),
+                    }
+                  : {}),
               },
             }
           : {}),
@@ -115,5 +146,14 @@ export class ArticleRepository {
     } catch {
       return false;
     }
+  }
+
+  async exists(id: string): Promise<boolean> {
+    const article = await this.prisma.article.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+
+    return Boolean(article);
   }
 }
