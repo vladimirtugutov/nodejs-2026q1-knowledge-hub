@@ -1,10 +1,12 @@
 import {
+  ConflictException,
   ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
   forwardRef,
 } from '@nestjs/common';
+import * as bcrypt from 'bcryptjs';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import { UserResponse } from './entities/user.entity';
@@ -65,9 +67,22 @@ export class UserService {
   }
 
   async create(createUserDto: CreateUserDto): Promise<UserResponse> {
+    const existingUsers = await this.userRepository.findAll();
+    const loginTaken = existingUsers.some(
+      (user) => user.login === createUserDto.login,
+    );
+
+    if (loginTaken) {
+      throw new ConflictException(
+        `User with login ${createUserDto.login} already exists`,
+      );
+    }
+
+    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+
     const user = await this.userRepository.create({
       login: createUserDto.login,
-      password: createUserDto.password,
+      password: hashedPassword,
       role: createUserDto.role,
     } as never);
 
@@ -84,12 +99,19 @@ export class UserService {
       throw new NotFoundException(`User with id ${id} not found`);
     }
 
-    if (user.password !== updatePasswordDto.oldPassword) {
+    const isOldPasswordValid = await bcrypt.compare(
+      updatePasswordDto.oldPassword,
+      user.password,
+    );
+
+    if (!isOldPasswordValid) {
       throw new ForbiddenException('Old password is incorrect');
     }
 
+    const hashedPassword = await bcrypt.hash(updatePasswordDto.newPassword, 10);
+
     const updatedUser = await this.userRepository.update(id, {
-      password: updatePasswordDto.newPassword,
+      password: hashedPassword,
     });
 
     if (!updatedUser) {

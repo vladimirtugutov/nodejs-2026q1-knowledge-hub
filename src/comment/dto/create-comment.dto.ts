@@ -1,18 +1,14 @@
-import { IsOptional, IsString, ValidateIf } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsString, IsUUID } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateCommentDto {
   @ApiProperty({ example: 'Test comment' })
   @IsString()
   content: string;
 
-  @ApiProperty({ example: 'art1' })
-  @IsString()
+  @ApiProperty({
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  @IsUUID('4')
   articleId: string;
-
-  @ApiPropertyOptional({ nullable: true, example: 'user2' })
-  @IsOptional()
-  @ValidateIf((_, value) => value !== null)
-  @IsString()
-  authorId?: string | null;
 }

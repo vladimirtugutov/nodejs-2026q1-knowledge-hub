@@ -28,13 +28,7 @@ export class UpdateArticleDto {
   @ApiPropertyOptional({ nullable: true, example: null })
   @IsOptional()
   @ValidateIf((_, value) => value !== null)
-  @IsUUID()
-  authorId?: string | null;
-
-  @ApiPropertyOptional({ nullable: true, example: null })
-  @IsOptional()
-  @ValidateIf((_, value) => value !== null)
-  @IsUUID()
+  @IsUUID('4')
   categoryId?: string | null;
 
   @ApiPropertyOptional({ type: [String] })

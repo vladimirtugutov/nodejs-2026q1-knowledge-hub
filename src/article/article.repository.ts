@@ -1,8 +1,25 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, ArticleStatus } from '@prisma/client';
+import { ArticleStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateArticleDto } from './dto/create-article.dto';
 import { Article } from './entities/article.entity';
+
+export type CreateArticleData = {
+  title: string;
+  content: string;
+  status?: string;
+  authorId?: string | null;
+  categoryId?: string | null;
+  tags?: string[];
+};
+
+export type UpdateArticleData = {
+  title?: string;
+  content?: string;
+  status?: string;
+  authorId?: string | null;
+  categoryId?: string | null;
+  tags?: string[];
+};
 
 @Injectable()
 export class ArticleRepository {
@@ -16,7 +33,7 @@ export class ArticleRepository {
         tags: true,
         comments: true,
       },
-    });
+    }) as Promise<Article[]>;
   }
 
   async findOne(id: string): Promise<Article | null> {
@@ -28,10 +45,10 @@ export class ArticleRepository {
         tags: true,
         comments: true,
       },
-    });
+    }) as Promise<Article | null>;
   }
 
-  async create(data: CreateArticleDto): Promise<Article> {
+  async create(data: CreateArticleData): Promise<Article> {
     return this.prisma.article.create({
       data: {
         title: data.title,
@@ -52,10 +69,10 @@ export class ArticleRepository {
         tags: true,
         comments: true,
       },
-    });
+    }) as Promise<Article>;
   }
 
-  async update(id: string, data: Partial<CreateArticleDto>): Promise<Article> {
+  async update(id: string, data: UpdateArticleData): Promise<Article> {
     return this.prisma.article.update({
       where: { id },
       data: {
@@ -86,7 +103,7 @@ export class ArticleRepository {
         tags: true,
         comments: true,
       },
-    });
+    }) as Promise<Article>;
   }
 
   async remove(id: string): Promise<boolean> {

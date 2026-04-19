@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
@@ -24,7 +25,9 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { JwtPayload } from '../auth/types/jwt-payload.type';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
@@ -69,18 +72,24 @@ export class UserController {
     return this.userService.create(createUserDto);
   }
 
-  @Roles(UserRole.ADMIN)
   @Put(':id')
   @ApiOperation({ summary: 'Update user password' })
   @ApiOkResponse({ description: 'User password updated successfully' })
   @ApiBadRequestResponse({ description: 'Invalid UUID or DTO' })
-  @ApiForbiddenResponse({ description: 'Old password is incorrect' })
+  @ApiForbiddenResponse({
+    description: 'Old password is incorrect or access denied',
+  })
   @ApiNotFoundResponse({ description: 'User not found' })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
-  updatePassword(
+  async updatePassword(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() updatePasswordDto: UpdatePasswordDto,
+    @CurrentUser() currentUser: JwtPayload,
   ) {
+    if (currentUser.role !== UserRole.ADMIN && currentUser.userId !== id) {
+      throw new ForbiddenException('You can update only your own password');
+    }
+
     return this.userService.updatePassword(id, updatePasswordDto);
   }
 

@@ -6,11 +6,15 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
+import { JwtPayload } from '../auth/types/jwt-payload.type';
 import { CommentService } from '../comment/comment.service';
 import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
 import { sortItems } from '../common/utils/sort.util';
-import { JwtPayload } from '../auth/types/jwt-payload.type';
-import { ArticleRepository } from './article.repository';
+import {
+  ArticleRepository,
+  CreateArticleData,
+  UpdateArticleData,
+} from './article.repository';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { QueryArticleDto } from './dto/query-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
@@ -77,10 +81,16 @@ export class ArticleService {
     createArticleDto: CreateArticleDto,
     user: JwtPayload,
   ): Promise<Article> {
-    return this.articleRepository.create({
-      ...createArticleDto,
+    const data: CreateArticleData = {
+      title: createArticleDto.title,
+      content: createArticleDto.content,
+      status: createArticleDto.status,
+      categoryId: createArticleDto.categoryId,
+      tags: createArticleDto.tags,
       authorId: user.userId,
-    });
+    };
+
+    return this.articleRepository.create(data);
   }
 
   async update(
@@ -98,11 +108,15 @@ export class ArticleService {
       throw new ForbiddenException('You can update only your own articles');
     }
 
-    const { authorId, ...safeDto } = updateArticleDto as UpdateArticleDto & {
-      authorId?: string | null;
+    const data: UpdateArticleData = {
+      title: updateArticleDto.title,
+      content: updateArticleDto.content,
+      status: updateArticleDto.status,
+      categoryId: updateArticleDto.categoryId,
+      tags: updateArticleDto.tags,
     };
 
-    return this.articleRepository.update(id, safeDto);
+    return this.articleRepository.update(id, data);
   }
 
   async remove(id: string): Promise<void> {
