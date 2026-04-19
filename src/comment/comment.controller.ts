@@ -59,7 +59,7 @@ export class CommentController {
     return this.commentService.findOne(id);
   }
 
-  @Roles(UserRole.EDITOR, UserRole.ADMIN)
+  @Roles(UserRole.editor, UserRole.admin)
   @Post()
   @ApiOperation({ summary: 'Create comment' })
   @ApiCreatedResponse({ description: 'Comment created successfully' })
@@ -76,7 +76,7 @@ export class CommentController {
     return this.commentService.create(createCommentDto, user);
   }
 
-  @Roles(UserRole.EDITOR, UserRole.ADMIN)
+  @Roles(UserRole.editor, UserRole.admin)
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete comment' })

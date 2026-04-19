@@ -10,7 +10,7 @@ model User {
   id               String    @id @default(cuid())
   login            String    @unique
   password         String
-  role             UserRole  @default(VIEWER)
+  role             UserRole  @default(viewer)
   refreshTokenHash String?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
@@ -76,9 +76,9 @@ model Tag {
 }
 
 enum UserRole {
-  ADMIN
-  EDITOR
-  VIEWER
+  admin
+  editor
+  viewer
 }
 
 enum ArticleStatus {

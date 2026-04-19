@@ -64,7 +64,7 @@ export class AuthService {
       data: {
         login: dto.login,
         password: passwordHash,
-        role: UserRole.VIEWER,
+        role: UserRole.viewer,
       },
       select: {
         id: true,
@@ -75,7 +75,13 @@ export class AuthService {
       },
     });
 
-    return { message: 'User created successfully', user };
+    return {
+      id: user.id,
+      login: user.login,
+      role: user.role,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
   }
 
   async login(dto: LoginDto) {

@@ -54,7 +54,7 @@ export class CategoryController {
     return this.categoryService.findOne(id);
   }
 
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.admin)
   @Post()
   @ApiOperation({ summary: 'Create category' })
   @ApiCreatedResponse({ description: 'Category created successfully' })
@@ -65,7 +65,7 @@ export class CategoryController {
     return this.categoryService.create(createCategoryDto);
   }
 
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.admin)
   @Put(':id')
   @ApiOperation({ summary: 'Update category' })
   @ApiOkResponse({ description: 'Category updated successfully' })
@@ -80,7 +80,7 @@ export class CategoryController {
     return this.categoryService.update(id, updateCategoryDto);
   }
 
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.admin)
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete category' })

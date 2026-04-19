@@ -13,7 +13,7 @@ export class CreateUserDto {
   @MinLength(6)
   password: string;
 
-  @ApiPropertyOptional({ enum: UserRole, default: UserRole.VIEWER })
+  @ApiPropertyOptional({ enum: UserRole, default: UserRole.viewer })
   @IsOptional()
   @IsEnum(UserRole)
   role?: UserRole;

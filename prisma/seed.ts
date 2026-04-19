@@ -25,11 +25,11 @@ async function main() {
 
     await tx.user.createMany({
       data: [
-        { id: 'user1', login: 'admin', password: 'admin123', role: 'ADMIN' },
-        { id: 'user2', login: 'editor1', password: 'editor123', role: 'EDITOR' },
-        { id: 'user3', login: 'editor2', password: 'editor123', role: 'EDITOR' },
-        { id: 'user4', login: 'viewer1', password: 'viewer123', role: 'VIEWER' },
-        { id: 'user5', login: 'viewer2', password: 'viewer123', role: 'VIEWER' },
+        { id: 'user1', login: 'admin', password: 'admin123', role: 'admin' },
+        { id: 'user2', login: 'editor1', password: 'editor123', role: 'editor' },
+        { id: 'user3', login: 'editor2', password: 'editor123', role: 'editor' },
+        { id: 'user4', login: 'viewer1', password: 'viewer123', role: 'viewer' },
+        { id: 'user5', login: 'viewer2', password: 'viewer123', role: 'viewer' },
       ],
     })
 

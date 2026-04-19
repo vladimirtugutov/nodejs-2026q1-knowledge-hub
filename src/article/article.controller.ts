@@ -61,7 +61,7 @@ export class ArticleController {
     return this.articleService.findOne(id);
   }
 
-  @Roles(UserRole.EDITOR, UserRole.ADMIN)
+  @Roles(UserRole.editor, UserRole.admin)
   @Post()
   @ApiOperation({ summary: 'Create article' })
   @ApiCreatedResponse({ description: 'Article created successfully' })
@@ -75,7 +75,7 @@ export class ArticleController {
     return this.articleService.create(createArticleDto, user);
   }
 
-  @Roles(UserRole.EDITOR, UserRole.ADMIN)
+  @Roles(UserRole.editor, UserRole.admin)
   @Put(':id')
   @ApiOperation({ summary: 'Update article' })
   @ApiOkResponse({ description: 'Article updated successfully' })
@@ -91,7 +91,7 @@ export class ArticleController {
     return this.articleService.update(id, updateArticleDto, user);
   }
 
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.admin)
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete article' })

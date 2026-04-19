@@ -39,7 +39,7 @@ import { UserService } from './user.service';
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.admin)
   @Get()
   @ApiOperation({ summary: 'Get all users' })
   @ApiOkResponse({ description: 'Users retrieved successfully' })
@@ -49,7 +49,7 @@ export class UserController {
     return this.userService.findAll(query);
   }
 
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.admin)
   @Get(':id')
   @ApiOperation({ summary: 'Get user by id' })
   @ApiOkResponse({ description: 'User retrieved successfully' })
@@ -61,7 +61,7 @@ export class UserController {
     return this.userService.findOne(id);
   }
 
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.admin)
   @Post()
   @ApiOperation({ summary: 'Create user' })
   @ApiCreatedResponse({ description: 'User created successfully' })
@@ -86,14 +86,14 @@ export class UserController {
     @Body() updatePasswordDto: UpdatePasswordDto,
     @CurrentUser() currentUser: JwtPayload,
   ) {
-    if (currentUser.role !== UserRole.ADMIN && currentUser.userId !== id) {
+    if (currentUser.role !== UserRole.admin && currentUser.userId !== id) {
       throw new ForbiddenException('You can update only your own password');
     }
 
     return this.userService.updatePassword(id, updatePasswordDto);
   }
 
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.admin)
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete user' })

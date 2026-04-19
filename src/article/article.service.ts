@@ -104,7 +104,7 @@ export class ArticleService {
       throw new NotFoundException(`Article with id ${id} not found`);
     }
 
-    if (user.role !== UserRole.ADMIN && article.authorId !== user.userId) {
+    if (user.role !== UserRole.admin && article.authorId !== user.userId) {
       throw new ForbiddenException('You can update only your own articles');
     }
 

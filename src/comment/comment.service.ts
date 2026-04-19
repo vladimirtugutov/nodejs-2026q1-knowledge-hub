@@ -88,7 +88,7 @@ export class CommentService {
       throw new NotFoundException(`Comment with id ${id} not found`);
     }
 
-    if (user.role !== UserRole.ADMIN && comment.authorId !== user.userId) {
+    if (user.role !== UserRole.admin && comment.authorId !== user.userId) {
       throw new ForbiddenException('You can delete only your own comments');
     }
 

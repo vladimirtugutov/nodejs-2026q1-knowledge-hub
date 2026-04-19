@@ -24,7 +24,7 @@ export class UserRepository {
       data: {
         login: userData.login,
         password: userData.password,
-        role: (userData.role as UserRole) ?? UserRole.VIEWER,
+        role: (userData.role as UserRole) ?? UserRole.viewer,
       },
     });
   }
