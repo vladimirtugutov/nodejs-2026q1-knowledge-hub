@@ -8,7 +8,7 @@ import {
   Param,
   Post,
   Query,
-} from '@nestjs/common'
+} from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiCreatedResponse,
@@ -19,10 +19,10 @@ import {
   ApiQuery,
   ApiTags,
   ApiUnprocessableEntityResponse,
-} from '@nestjs/swagger'
-import { CommentService } from './comment.service'
-import { CreateCommentDto } from './dto/create-comment.dto'
-import { QueryCommentDto } from './dto/query-comment.dto'
+} from '@nestjs/swagger';
+import { CommentService } from './comment.service';
+import { CreateCommentDto } from './dto/create-comment.dto';
+import { QueryCommentDto } from './dto/query-comment.dto';
 
 @ApiTags('comment')
 @Controller('comment')
@@ -37,7 +37,7 @@ export class CommentController {
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   findByArticleId(@Query() query: QueryCommentDto) {
-    return this.commentService.findByArticleId(query)
+    return this.commentService.findByArticleId(query);
   }
 
   @Get(':id')
@@ -45,7 +45,7 @@ export class CommentController {
   @ApiOkResponse({ description: 'Comment retrieved successfully' })
   @ApiNotFoundResponse({ description: 'Comment not found' })
   findOne(@Param('id') id: string) {
-    return this.commentService.findOne(id)
+    return this.commentService.findOne(id);
   }
 
   @Post()
@@ -56,7 +56,7 @@ export class CommentController {
     description: 'Referenced article does not exist',
   })
   create(@Body() createCommentDto: CreateCommentDto) {
-    return this.commentService.create(createCommentDto)
+    return this.commentService.create(createCommentDto);
   }
 
   @Delete(':id')
@@ -65,6 +65,6 @@ export class CommentController {
   @ApiNoContentResponse({ description: 'Comment deleted successfully' })
   @ApiNotFoundResponse({ description: 'Comment not found' })
   async remove(@Param('id') id: string): Promise<void> {
-    await this.commentService.remove(id)
+    await this.commentService.remove(id);
   }
 }

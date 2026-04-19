@@ -9,7 +9,7 @@ import {
   Post,
   Put,
   Query,
-} from '@nestjs/common'
+} from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiCreatedResponse,
@@ -19,11 +19,11 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiTags,
-} from '@nestjs/swagger'
-import { UserService } from './user.service'
-import { CreateUserDto } from './dto/create-user.dto'
-import { UpdatePasswordDto } from './dto/update-password.dto'
-import { PaginationDto } from '../common/dto/pagination.dto'
+} from '@nestjs/swagger';
+import { UserService } from './user.service';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdatePasswordDto } from './dto/update-password.dto';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @ApiTags('user')
 @Controller('user')
@@ -34,7 +34,7 @@ export class UserController {
   @ApiOperation({ summary: 'Get all users' })
   @ApiOkResponse({ description: 'Users retrieved successfully' })
   findAll(@Query() query: PaginationDto) {
-    return this.userService.findAll(query)
+    return this.userService.findAll(query);
   }
 
   @Get(':id')
@@ -42,7 +42,7 @@ export class UserController {
   @ApiOkResponse({ description: 'User retrieved successfully' })
   @ApiNotFoundResponse({ description: 'User not found' })
   findOne(@Param('id') id: string) {
-    return this.userService.findOne(id)
+    return this.userService.findOne(id);
   }
 
   @Post()
@@ -50,7 +50,7 @@ export class UserController {
   @ApiCreatedResponse({ description: 'User created successfully' })
   @ApiBadRequestResponse({ description: 'Invalid request body' })
   create(@Body() createUserDto: CreateUserDto) {
-    return this.userService.create(createUserDto)
+    return this.userService.create(createUserDto);
   }
 
   @Put(':id')
@@ -63,7 +63,7 @@ export class UserController {
     @Param('id') id: string,
     @Body() updatePasswordDto: UpdatePasswordDto,
   ) {
-    return this.userService.updatePassword(id, updatePasswordDto)
+    return this.userService.updatePassword(id, updatePasswordDto);
   }
 
   @Delete(':id')
@@ -72,6 +72,6 @@ export class UserController {
   @ApiNoContentResponse({ description: 'User deleted successfully' })
   @ApiNotFoundResponse({ description: 'User not found' })
   async remove(@Param('id') id: string): Promise<void> {
-    await this.userService.remove(id)
+    await this.userService.remove(id);
   }
 }

@@ -1,20 +1,20 @@
-import { Injectable } from '@nestjs/common'
-import { UserRole } from '@prisma/client'
-import { PrismaService } from '../prisma/prisma.service'
-import { User } from './entities/user.entity'
+import { Injectable } from '@nestjs/common';
+import { UserRole } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
+import { User } from './entities/user.entity';
 
 @Injectable()
 export class UserRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll(): Promise<User[]> {
-    return this.prisma.user.findMany()
+    return this.prisma.user.findMany();
   }
 
   async findOne(id: string): Promise<User | null> {
     return this.prisma.user.findUnique({
       where: { id },
-    })
+    });
   }
 
   async create(
@@ -26,7 +26,7 @@ export class UserRepository {
         password: userData.password,
         role: (userData.role as UserRole) ?? UserRole.VIEWER,
       },
-    })
+    });
   }
 
   async update(id: string, userData: Partial<User>): Promise<User | null> {
@@ -42,9 +42,9 @@ export class UserRepository {
             ? { role: userData.role as UserRole }
             : {}),
         },
-      })
+      });
     } catch {
-      return null
+      return null;
     }
   }
 
@@ -52,10 +52,10 @@ export class UserRepository {
     try {
       await this.prisma.user.delete({
         where: { id },
-      })
-      return true
+      });
+      return true;
     } catch {
-      return false
+      return false;
     }
   }
 }

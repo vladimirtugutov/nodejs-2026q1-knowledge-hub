@@ -1,19 +1,19 @@
-import { Injectable } from '@nestjs/common'
-import { PrismaService } from '../prisma/prisma.service'
-import { Category } from './entities/category.entity'
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { Category } from './entities/category.entity';
 
 @Injectable()
 export class CategoryRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll(): Promise<Category[]> {
-    return this.prisma.category.findMany()
+    return this.prisma.category.findMany();
   }
 
   async findOne(id: string): Promise<Category | null> {
     return this.prisma.category.findUnique({
       where: { id },
-    })
+    });
   }
 
   async create(data: Omit<Category, 'id'>): Promise<Category> {
@@ -22,7 +22,7 @@ export class CategoryRepository {
         name: data.name,
         description: data.description,
       },
-    })
+    });
   }
 
   async update(id: string, data: Partial<Category>): Promise<Category | null> {
@@ -35,9 +35,9 @@ export class CategoryRepository {
             ? { description: data.description }
             : {}),
         },
-      })
+      });
     } catch {
-      return null
+      return null;
     }
   }
 
@@ -45,10 +45,10 @@ export class CategoryRepository {
     try {
       await this.prisma.category.delete({
         where: { id },
-      })
-      return true
+      });
+      return true;
     } catch {
-      return false
+      return false;
     }
   }
 }

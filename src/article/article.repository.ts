@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common'
-import { Prisma, ArticleStatus } from '@prisma/client'
-import { PrismaService } from '../prisma/prisma.service'
-import { CreateArticleDto } from './dto/create-article.dto'
-import { Article } from './entities/article.entity'
+import { Injectable } from '@nestjs/common';
+import { Prisma, ArticleStatus } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
+import { CreateArticleDto } from './dto/create-article.dto';
+import { Article } from './entities/article.entity';
 
 @Injectable()
 export class ArticleRepository {
@@ -16,7 +16,7 @@ export class ArticleRepository {
         tags: true,
         comments: true,
       },
-    })
+    });
   }
 
   async findOne(id: string): Promise<Article | null> {
@@ -28,7 +28,7 @@ export class ArticleRepository {
         tags: true,
         comments: true,
       },
-    })
+    });
   }
 
   async create(data: CreateArticleDto): Promise<Article> {
@@ -52,7 +52,7 @@ export class ArticleRepository {
         tags: true,
         comments: true,
       },
-    })
+    });
   }
 
   async update(id: string, data: Partial<CreateArticleDto>): Promise<Article> {
@@ -86,17 +86,17 @@ export class ArticleRepository {
         tags: true,
         comments: true,
       },
-    })
+    });
   }
 
   async remove(id: string): Promise<boolean> {
     try {
       await this.prisma.article.delete({
         where: { id },
-      })
-      return true
+      });
+      return true;
     } catch {
-      return false
+      return false;
     }
   }
 }

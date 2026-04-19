@@ -1,3 +1,3 @@
-import { Prisma } from '@prisma/client'
+import { Prisma } from '@prisma/client';
 
-export type Category = Prisma.CategoryGetPayload<Record<string, never>>
+export type Category = Prisma.CategoryGetPayload<Record<string, never>>;
