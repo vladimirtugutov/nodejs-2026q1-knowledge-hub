@@ -1,12 +1,10 @@
-import {
-  ConflictException,
-  ForbiddenException,
-  Injectable,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { UserRole } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+import { ConflictError } from '../common/errors/conflict.error';
+import { ForbiddenError } from '../common/errors/forbidden.error';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
@@ -41,8 +39,12 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  private async saveRefreshToken(userId: string, refreshToken: string) {
+  private async saveRefreshToken(
+    userId: string,
+    refreshToken: string,
+  ): Promise<void> {
     const hashed = await bcrypt.hash(refreshToken, this.saltRounds);
+
     await this.prisma.user.update({
       where: { id: userId },
       data: { refreshTokenHash: hashed },
@@ -55,7 +57,7 @@ export class AuthService {
     });
 
     if (existing) {
-      throw new ConflictException('Login already exists');
+      throw new ConflictError('Login already exists');
     }
 
     const passwordHash = await bcrypt.hash(dto.password, this.saltRounds);
@@ -90,12 +92,13 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new ForbiddenException('Authentication failed');
+      throw new ForbiddenError('Authentication failed');
     }
 
     const passwordMatches = await bcrypt.compare(dto.password, user.password);
+
     if (!passwordMatches) {
-      throw new ForbiddenException('Authentication failed');
+      throw new ForbiddenError('Authentication failed');
     }
 
     const payload: JwtPayload = {
@@ -123,7 +126,7 @@ export class AuthService {
         },
       );
     } catch {
-      throw new ForbiddenException('Invalid refresh token');
+      throw new ForbiddenError('Invalid refresh token');
     }
 
     const user = await this.prisma.user.findUnique({
@@ -131,12 +134,13 @@ export class AuthService {
     });
 
     if (!user?.refreshTokenHash) {
-      throw new ForbiddenException('Invalid refresh token');
+      throw new ForbiddenError('Invalid refresh token');
     }
 
     const valid = await bcrypt.compare(dto.refreshToken, user.refreshTokenHash);
+
     if (!valid) {
-      throw new ForbiddenException('Invalid refresh token');
+      throw new ForbiddenError('Invalid refresh token');
     }
 
     const newTokens = await this.generateTokens({

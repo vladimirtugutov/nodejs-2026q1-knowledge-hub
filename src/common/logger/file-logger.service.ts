@@ -13,13 +13,14 @@ export class FileLoggerService {
     this.logsDir = path.resolve(process.cwd(), 'logs');
     this.logFilePath = path.join(this.logsDir, 'app.log');
 
-    const configuredMaxSize = Number(
-      this.configService.get<string>('LOG_MAX_FILE_SIZE', '1048576'),
+    const configuredMaxSizeKb = Number(
+      this.configService.get<string>('LOG_MAX_FILE_SIZE', '1024'),
     );
 
-    this.maxFileSizeBytes = Number.isFinite(configuredMaxSize) && configuredMaxSize > 0
-      ? configuredMaxSize
-      : 1048576;
+    this.maxFileSizeBytes =
+      Number.isFinite(configuredMaxSizeKb) && configuredMaxSizeKb > 0
+        ? configuredMaxSizeKb * 1024
+        : 1024 * 1024;
 
     this.ensureLogsDirectory();
   }
