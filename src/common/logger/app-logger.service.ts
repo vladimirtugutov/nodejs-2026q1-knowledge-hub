@@ -1,5 +1,6 @@
 import { Injectable, LoggerService } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { FileLoggerService } from './file-logger.service';
 
 type AppLogLevel = 'log' | 'debug' | 'warn' | 'error' | 'verbose';
 
@@ -9,7 +10,10 @@ export class AppLoggerService implements LoggerService {
   private readonly environment: string;
   private readonly enabledLevels: Set<AppLogLevel>;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly fileLoggerService: FileLoggerService,
+  ) {
     this.environment = this.configService.get<string>(
       'NODE_ENV',
       'development',
@@ -83,43 +87,41 @@ export class AppLoggerService implements LoggerService {
 
       const line = JSON.stringify(payload);
 
-      if (level === 'error') {
-        console.error(line);
-        return;
-      }
-
-      if (level === 'warn') {
-        console.warn(line);
-        return;
-      }
-
-      console.log(line);
+      this.writeToConsole(level, line);
+      this.fileLoggerService.write(line);
       return;
     }
 
     const printableMessage =
       typeof message === 'string' ? message : JSON.stringify(message);
 
-    const prefix = `[${timestamp}] [${level.toUpperCase()}] [${resolvedContext}]`;
+    const line = `[${timestamp}] [${level.toUpperCase()}] [${resolvedContext}] ${printableMessage}`;
 
+    this.writeToConsole(level, line);
+
+    this.fileLoggerService.write(line);
+
+    if (level === 'error' && trace) {
+      this.fileLoggerService.write(trace);
+    }
+  }
+
+  private writeToConsole(level: AppLogLevel, line: string): void {
     if (level === 'error') {
-      console.error(`${prefix} ${printableMessage}`);
-      if (trace) {
-        console.error(trace);
-      }
+      console.error(line);
       return;
     }
 
     if (level === 'warn') {
-      console.warn(`${prefix} ${printableMessage}`);
+      console.warn(line);
       return;
     }
 
     if (level === 'debug') {
-      console.debug(`${prefix} ${printableMessage}`);
+      console.debug(line);
       return;
     }
 
-    console.log(`${prefix} ${printableMessage}`);
+    console.log(line);
   }
 }

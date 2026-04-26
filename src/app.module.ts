@@ -7,6 +7,7 @@ import { AppService } from './app.service';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { AppLoggerService } from './common/logger/app-logger.service';
+import { FileLoggerService } from './common/logger/file-logger.service';
 
 import { UserModule } from './user/user.module';
 import { ArticleModule } from './article/article.module';
@@ -35,6 +36,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
   providers: [
     AppService,
     AppLoggerService,
+    FileLoggerService,
     LoggingInterceptor,
     GlobalExceptionFilter,
     {
