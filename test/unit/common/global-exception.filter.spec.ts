@@ -7,6 +7,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GlobalExceptionFilter } from '../../../src/common/filters/global-exception.filter';
 import { AppLoggerService } from '../../../src/common/logger/app-logger.service';
 import { BaseHttpError } from '../../../src/common/errors/base-http.error';
+import { ConflictError } from '../../../src/common/errors/conflict.error';
+import { ValidationError } from '../../../src/common/errors/validation.error';
+import { UnauthorizedError } from '../../../src/common/errors/unauthorized.error';
 
 class TestHttpError extends BaseHttpError {
   constructor() {
@@ -39,12 +42,12 @@ describe('GlobalExceptionFilter', () => {
     },
   };
 
-  const mockHost = {
+  const mockHost: ArgumentsHost = {
     switchToHttp: () => ({
       getRequest: () => mockRequest,
       getResponse: () => mockResponse,
     }),
-  } as unknown as ArgumentsHost;
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -59,9 +62,9 @@ describe('GlobalExceptionFilter', () => {
     expect(mockLogger.warn).toHaveBeenCalled();
     expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.CONFLICT);
     expect(mockResponse.json).toHaveBeenCalledWith({
-        statusCode: HttpStatus.CONFLICT,
-        error: 'Login already exists',
-        message: 'Conflict',
+      statusCode: HttpStatus.CONFLICT,
+      error: 'Login already exists',
+      message: 'Conflict',
     });
   });
 
@@ -105,14 +108,68 @@ describe('GlobalExceptionFilter', () => {
     filter.catch(exception, mockHost);
 
     expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect.objectContaining({
         body: expect.objectContaining({
-            password: '[REDACTED]',
-            refreshToken: '[REDACTED]',
+          password: '[REDACTED]',
+          refreshToken: '[REDACTED]',
         }),
-        }),
-        expect.any(String),
-        GlobalExceptionFilter.name,
+      }),
+      expect.any(String),
+      GlobalExceptionFilter.name,
     );
   });
+
+  it('should handle ConflictError correctly', () => {
+    const exception = new ConflictError('проверка');
+
+    vi.clearAllMocks();
+
+    filter.catch(exception, mockHost);
+
+    expect(mockLogger.warn).toHaveBeenCalled();
+    expect(mockResponse.status).toHaveBeenCalledWith(409);
+    expect(mockResponse.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusCode: 409,
+        message: 'проверка',
+      }),
+    );
+  });
+
+  it('should handle ValidationError correctly', () => {
+  const mockHost: ArgumentsHost = {
+    switchToHttp: () => ({
+      getRequest: () => mockRequest,
+      getResponse: () => mockResponse,
+    }),
+  };
+
+  const exception = new ValidationError('validation failed');
+
+  filter.catch(exception, mockHost);
+
+  expect(mockLogger.warn).toHaveBeenCalled();
+  expect(mockResponse.status).toHaveBeenCalledWith(400);
+  expect(mockResponse.json).toHaveBeenCalledWith(
+    expect.objectContaining({
+      statusCode: 400,
+      message: 'validation failed',
+    }),
+  );
+});
+
+it('should handle UnauthorizedError correctly', () => {
+  const exception = new UnauthorizedError('no access');
+
+  filter.catch(exception, mockHost);
+
+  expect(mockLogger.warn).toHaveBeenCalled();
+  expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.UNAUTHORIZED);
+  expect(mockResponse.json).toHaveBeenCalledWith(
+    expect.objectContaining({
+      statusCode: HttpStatus.UNAUTHORIZED,
+      message: 'no access',
+    }),
+  );
+});
 });

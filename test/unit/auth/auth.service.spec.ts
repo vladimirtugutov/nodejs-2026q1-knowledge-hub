@@ -38,23 +38,24 @@ describe('AuthService', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    mockConfigService.get.mockImplementation((key: string) => {
+    mockConfigService.get.mockImplementation((key: string, defaultValue?: string) => {
       const config = {
-        'CRYPT_SALT': '10',
-        'JWT_SECRET_KEY': 'secret',
-        'TOKEN_EXPIRE_TIME': '15m',
-        'JWT_SECRET_REFRESH_KEY': 'refresh-secret',
-        'TOKEN_REFRESH_EXPIRE_TIME': '7d',
+        CRYPT_SALT: '10',
+        JWT_SECRET_KEY: 'secret',
+        TOKEN_EXPIRE_TIME: '15m',
+        JWT_SECRET_REFRESH_KEY: 'refresh-secret',
+        TOKEN_REFRESH_EXPIRE_TIME: '7d',
       };
-      return config[key as keyof typeof config];
+
+      return config[key as keyof typeof config] ?? defaultValue;
     });
 
     mockConfigService.getOrThrow.mockImplementation((key: string) => {
-        const value = mockConfigService.get(key);
-        if (value === undefined) {
+      const value = mockConfigService.get(key);
+      if (value === undefined) {
         throw new Error(`Missing config key: ${key}`);
-        }
-        return value;
+      }
+      return value;
     });
 
     const module: TestingModule = await Test.createTestingModule({
@@ -76,11 +77,17 @@ describe('AuthService', () => {
       await expect(
         service.signup({ login: 'test', password: 'pass' }),
       ).rejects.toThrow(ConflictError);
+
+      expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
+        where: { login: 'test' },
+      });
+      expect(mockPrisma.user.create).not.toHaveBeenCalled();
     });
 
     it('should create user with viewer role and return without password', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
       (bcrypt.hash as any).mockResolvedValue('hashed-pass');
+
       mockPrisma.user.create.mockResolvedValue({
         id: '1',
         login: 'new',
@@ -92,22 +99,20 @@ describe('AuthService', () => {
       const result = await service.signup({ login: 'new', password: 'pass' });
 
       expect(bcrypt.hash).toHaveBeenCalledWith('pass', 10);
-      expect(mockPrisma.user.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-            data: {
-            login: 'new',
-            password: 'hashed-pass',
-            role: UserRole.viewer,
-            },
-            select: {
-            id: true,
-            login: true,
-            role: true,
-            createdAt: true,
-            updatedAt: true,
-            },
-        }),
-        );
+      expect(mockPrisma.user.create).toHaveBeenCalledWith({
+        data: {
+          login: 'new',
+          password: 'hashed-pass',
+          role: UserRole.viewer,
+        },
+        select: {
+          id: true,
+          login: true,
+          role: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
       expect(result).toEqual({
         id: '1',
         login: 'new',
@@ -125,15 +130,27 @@ describe('AuthService', () => {
       await expect(
         service.login({ login: 'missing', password: 'pass' }),
       ).rejects.toThrow(ForbiddenError);
+
+      expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
+        where: { login: 'missing' },
+      });
     });
 
     it('should throw ForbiddenError if password wrong', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({ password: 'wrong-hash' });
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: '1',
+        login: 'test',
+        role: UserRole.viewer,
+        password: 'wrong-hash',
+      });
+
       (bcrypt.compare as any).mockResolvedValue(false);
 
       await expect(
         service.login({ login: 'test', password: 'wrong' }),
       ).rejects.toThrow(ForbiddenError);
+
+      expect(bcrypt.compare).toHaveBeenCalledWith('wrong', 'wrong-hash');
     });
 
     it('should login and return tokens', async () => {
@@ -143,10 +160,13 @@ describe('AuthService', () => {
         role: UserRole.viewer,
         password: 'stored-hash',
       });
+
       (bcrypt.compare as any).mockResolvedValue(true);
+
       mockJwtService.signAsync
         .mockResolvedValueOnce('access-token')
         .mockResolvedValueOnce('refresh-token');
+
       (bcrypt.hash as any).mockResolvedValue('stored-refresh-hash');
       mockPrisma.user.update.mockResolvedValue({});
 
@@ -156,102 +176,183 @@ describe('AuthService', () => {
         accessToken: 'access-token',
         refreshToken: 'refresh-token',
       });
+
       expect(mockJwtService.signAsync).toHaveBeenCalledTimes(2);
+      expect(mockJwtService.signAsync).toHaveBeenNthCalledWith(
+        1,
+        {
+          userId: '1',
+          login: 'test',
+          role: UserRole.viewer,
+        },
+        {
+          secret: 'secret',
+          expiresIn: '15m',
+        },
+      );
+      expect(mockJwtService.signAsync).toHaveBeenNthCalledWith(
+        2,
+        {
+          userId: '1',
+          login: 'test',
+          role: UserRole.viewer,
+        },
+        {
+          secret: 'refresh-secret',
+          expiresIn: '7d',
+        },
+      );
+
+      expect(bcrypt.compare).toHaveBeenCalledWith('pass', 'stored-hash');
+      expect(bcrypt.hash).toHaveBeenCalledWith('refresh-token', 10);
+
+      expect(mockPrisma.user.update).toHaveBeenCalledWith({
+        where: { id: '1' },
+        data: { refreshTokenHash: 'stored-refresh-hash' },
+      });
     });
   });
 
   describe('refresh', () => {
     it('should throw ForbiddenError when refresh token is invalid', async () => {
-        mockJwtService.verifyAsync.mockRejectedValue(new Error('invalid token'));
+      mockJwtService.verifyAsync.mockRejectedValue(new Error('invalid token'));
 
-        await expect(
+      await expect(
         service.refresh({ refreshToken: 'bad-refresh-token' }),
-        ).rejects.toThrow(ForbiddenError);
+      ).rejects.toThrow(ForbiddenError);
+
+      expect(mockJwtService.verifyAsync).toHaveBeenCalledWith(
+        'bad-refresh-token',
+        {
+          secret: 'refresh-secret',
+        },
+      );
     });
 
     it('should throw ForbiddenError when user does not have refreshTokenHash', async () => {
-        mockJwtService.verifyAsync.mockResolvedValue({
+      mockJwtService.verifyAsync.mockResolvedValue({
         userId: '1',
         login: 'test',
         role: UserRole.viewer,
-        });
+      });
 
-        mockPrisma.user.findUnique.mockResolvedValue({
+      mockPrisma.user.findUnique.mockResolvedValue({
         id: '1',
         login: 'test',
         role: UserRole.viewer,
         refreshTokenHash: null,
-        });
+      });
 
-        await expect(
+      await expect(
         service.refresh({ refreshToken: 'valid-refresh-token' }),
-        ).rejects.toThrow(ForbiddenError);
+      ).rejects.toThrow(ForbiddenError);
+
+      expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
+        where: { id: '1' },
+      });
     });
 
     it('should throw ForbiddenError when refresh token hash does not match', async () => {
-        mockJwtService.verifyAsync.mockResolvedValue({
+      mockJwtService.verifyAsync.mockResolvedValue({
         userId: '1',
         login: 'test',
         role: UserRole.viewer,
-        });
+      });
 
-        mockPrisma.user.findUnique.mockResolvedValue({
+      mockPrisma.user.findUnique.mockResolvedValue({
         id: '1',
         login: 'test',
         role: UserRole.viewer,
         refreshTokenHash: 'stored-hash',
-        });
+      });
 
-        (bcrypt.compare as any).mockResolvedValue(false);
+      (bcrypt.compare as any).mockResolvedValue(false);
 
-        await expect(
+      await expect(
         service.refresh({ refreshToken: 'wrong-refresh-token' }),
-        ).rejects.toThrow(ForbiddenError);
+      ).rejects.toThrow(ForbiddenError);
+
+      expect(bcrypt.compare).toHaveBeenCalledWith(
+        'wrong-refresh-token',
+        'stored-hash',
+      );
     });
 
     it('should return new tokens and rotate refresh token hash', async () => {
-        mockJwtService.verifyAsync.mockResolvedValue({
+      mockJwtService.verifyAsync.mockResolvedValue({
         userId: '1',
         login: 'test',
         role: UserRole.viewer,
-        });
+      });
 
-        mockPrisma.user.findUnique.mockResolvedValue({
+      mockPrisma.user.findUnique.mockResolvedValue({
         id: '1',
         login: 'test',
         role: UserRole.viewer,
         refreshTokenHash: 'stored-refresh-hash',
-        });
+      });
 
-        (bcrypt.compare as any).mockResolvedValue(true);
+      (bcrypt.compare as any).mockResolvedValue(true);
 
-        mockJwtService.signAsync
+      mockJwtService.signAsync
         .mockResolvedValueOnce('new-access-token')
         .mockResolvedValueOnce('new-refresh-token');
 
-        (bcrypt.hash as any).mockResolvedValue('new-refresh-hash');
-        mockPrisma.user.update.mockResolvedValue({});
+      (bcrypt.hash as any).mockResolvedValue('new-refresh-hash');
+      mockPrisma.user.update.mockResolvedValue({});
 
-        const result = await service.refresh({
+      const result = await service.refresh({
         refreshToken: 'valid-refresh-token',
-        });
+      });
 
-        expect(mockJwtService.verifyAsync).toHaveBeenCalledWith(
+      expect(mockJwtService.verifyAsync).toHaveBeenCalledWith(
         'valid-refresh-token',
         {
-            secret: 'refresh-secret',
+          secret: 'refresh-secret',
         },
-        );
+      );
 
-        expect(result).toEqual({
+      expect(mockJwtService.signAsync).toHaveBeenNthCalledWith(
+        1,
+        {
+          userId: '1',
+          login: 'test',
+          role: UserRole.viewer,
+        },
+        {
+          secret: 'secret',
+          expiresIn: '15m',
+        },
+      );
+
+      expect(mockJwtService.signAsync).toHaveBeenNthCalledWith(
+        2,
+        {
+          userId: '1',
+          login: 'test',
+          role: UserRole.viewer,
+        },
+        {
+          secret: 'refresh-secret',
+          expiresIn: '7d',
+        },
+      );
+
+      expect(result).toEqual({
         accessToken: 'new-access-token',
         refreshToken: 'new-refresh-token',
-        });
+      });
 
-        expect(mockPrisma.user.update).toHaveBeenCalledWith({
+      expect(bcrypt.compare).toHaveBeenCalledWith(
+        'valid-refresh-token',
+        'stored-refresh-hash',
+      );
+      expect(bcrypt.hash).toHaveBeenCalledWith('new-refresh-token', 10);
+
+      expect(mockPrisma.user.update).toHaveBeenCalledWith({
         where: { id: '1' },
         data: { refreshTokenHash: 'new-refresh-hash' },
-        });
+      });
     });
-    });
+  });
 });

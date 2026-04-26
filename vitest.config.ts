@@ -8,12 +8,7 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     include: ['test/unit/**/*.spec.ts', 'src/**/*.spec.ts'],
-    exclude: [
-      '**/node_modules/**',
-      '**/dist/**',
-      '**/*.e2e-spec.ts',
-      '**/*.e2e.test.ts',
-    ],
+    exclude: ['**/node_modules/**', '**/dist/**', '**/*.e2e-spec.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
@@ -23,8 +18,12 @@ export default defineConfig({
         'src/**/*.module.ts',
         'src/**/*.entity.ts',
         'src/**/*.e2e-spec.ts',
-        'src/**/*.e2e.test.ts',
         'src/**/index.ts',
+        'src/article/article.repository.ts',
+        'src/category/category.repository.ts',
+        'src/comment/comment.repository.ts',
+        'src/user/user.repository.ts',
+        'src/prisma/prisma.service.ts',
       ],
       thresholds: {
         lines: 90,

@@ -48,7 +48,7 @@ describe('ArticleService', () => {
       id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
       title: 'Nest Article',
       content: 'Content',
-      status: 'draft',
+      status: 'draft' as ArticleStatus,
       authorId: authorUser.userId,
       categoryId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
       createdAt: new Date('2026-04-20T10:00:00.000Z'),
@@ -235,6 +235,8 @@ describe('ArticleService', () => {
         title: dto.title,
         content: dto.content,
         status: dto.status,
+        categoryId: dto.categoryId,
+        tags: dto.tags.map((t) => ({ id: t, name: t })),
       });
 
       articleRepositoryMock.create.mockResolvedValue(createdArticle);
@@ -250,6 +252,33 @@ describe('ArticleService', () => {
         authorId: authorUser.userId,
       });
       expect(result).toEqual(createdArticle);
+    });
+
+    it('should create article with null authorId', async () => {
+      const dto = {
+        title: 'Public article',
+        content: 'Public',
+        status: ArticleStatus.PUBLISHED,
+        categoryId: null,
+        tags: ['public'] as string[],
+      };
+
+      const created = makeArticle({
+        ...dto,
+        authorId: null,
+        categoryId: null,
+        tags: dto.tags.map((t) => ({ id: t, name: t })),
+      });
+
+      articleRepositoryMock.create.mockResolvedValue(created);
+
+      const result = await service.create(dto, { ...authorUser, userId: null });
+
+      expect(articleRepositoryMock.create).toHaveBeenCalledWith({
+        ...dto,
+        authorId: null,
+      });
+      expect(result).toEqual(created);
     });
   });
 
@@ -330,6 +359,33 @@ describe('ArticleService', () => {
       });
       expect(result).toEqual(updatedArticle);
     });
+
+    it('should update tags only', async () => {
+      const article = makeArticle();
+      const updated = makeArticle({
+        tags: [{ id: '2', name: 'vue' }],
+      });
+
+      articleRepositoryMock.findOne.mockResolvedValue(article);
+      articleRepositoryMock.update.mockResolvedValue(updated);
+
+      const result = await service.update(
+        article.id,
+        {
+          tags: ['vue'],
+        },
+        authorUser,
+      );
+
+      expect(articleRepositoryMock.update).toHaveBeenCalledWith(article.id, {
+        tags: ['vue'],
+        title: undefined,
+        content: undefined,
+        status: undefined,
+        categoryId: undefined,
+      });
+      expect(result.tags.map((t) => t.name)).toEqual(['vue']);
+    });
   });
 
   describe('remove', () => {
@@ -379,6 +435,19 @@ describe('ArticleService', () => {
         authorId: null,
       });
     });
+
+    it('should not update articles when user has no authored articles', async () => {
+      const articles = [
+        makeArticle({ id: '1', authorId: anotherUser.userId }),
+        makeArticle({ id: '2', authorId: null }),
+      ];
+      articleRepositoryMock.findAll.mockResolvedValue(articles);
+      articleRepositoryMock.update.mockResolvedValue(makeArticle());
+
+      await service.nullifyAuthorByUserId(authorUser.userId);
+
+      expect(articleRepositoryMock.update).not.toHaveBeenCalled();
+    });
   });
 
   describe('nullifyCategoryByCategoryId', () => {
@@ -405,6 +474,20 @@ describe('ArticleService', () => {
         categoryId: null,
       });
     });
+
+    it('should not update articles when no category matches', async () => {
+      const categoryId = 'missing-category';
+      const articles = [
+        makeArticle({ id: '1', categoryId: 'other' }),
+        makeArticle({ id: '2', categoryId: null }),
+      ];
+      articleRepositoryMock.findAll.mockResolvedValue(articles);
+      articleRepositoryMock.update.mockResolvedValue(makeArticle());
+
+      await service.nullifyCategoryByCategoryId(categoryId);
+
+      expect(articleRepositoryMock.update).not.toHaveBeenCalled();
+    });
   });
 
   describe('exists', () => {
@@ -420,4 +503,27 @@ describe('ArticleService', () => {
       await expect(service.exists('missing-id')).resolves.toBe(false);
     });
   });
+
+  it('should allow update with null categoryId from author', async () => {
+  const article = makeArticle({ authorId: authorUser.userId });
+  const updated = makeArticle({ title: 'updated with null category', categoryId: null });
+
+  articleRepositoryMock.findOne.mockResolvedValue(article);
+  articleRepositoryMock.update.mockResolvedValue(updated);
+
+  const result = await service.update(
+    article.id,
+    { categoryId: null },
+    authorUser,
+  );
+
+  expect(articleRepositoryMock.update).toHaveBeenCalledWith(article.id, {
+    categoryId: null,
+    title: undefined,
+    content: undefined,
+    status: undefined,
+    tags: undefined,
+  });
+  expect(result).toEqual(updated);
+});
 });
