@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  LoggerService,
-  LogLevel,
-} from '@nestjs/common';
+import { Injectable, LoggerService } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 type AppLogLevel = 'log' | 'debug' | 'warn' | 'error' | 'verbose';
@@ -14,9 +10,15 @@ export class AppLoggerService implements LoggerService {
   private readonly enabledLevels: Set<AppLogLevel>;
 
   constructor(private readonly configService: ConfigService) {
-    this.environment = this.configService.get<string>('NODE_ENV', 'development');
+    this.environment = this.configService.get<string>(
+      'NODE_ENV',
+      'development',
+    );
 
-    const configuredLevel = this.configService.get<AppLogLevel>('LOG_LEVEL', 'log');
+    const configuredLevel = this.configService.get<AppLogLevel>(
+      'LOG_LEVEL',
+      'log',
+    );
     this.enabledLevels = new Set(this.resolveLevels(configuredLevel));
   }
 
@@ -41,7 +43,13 @@ export class AppLoggerService implements LoggerService {
   }
 
   private resolveLevels(level: AppLogLevel): AppLogLevel[] {
-    const priority: AppLogLevel[] = ['error', 'warn', 'log', 'debug', 'verbose'];
+    const priority: AppLogLevel[] = [
+      'error',
+      'warn',
+      'log',
+      'debug',
+      'verbose',
+    ];
     const index = priority.indexOf(level);
 
     if (index === -1) {

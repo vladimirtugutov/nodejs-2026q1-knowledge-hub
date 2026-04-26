@@ -1,14 +1,10 @@
-import {
-  ForbiddenException,
-  Inject,
-  Injectable,
-  NotFoundException,
-  UnprocessableEntityException,
-  forwardRef,
-} from '@nestjs/common';
+import { Inject, Injectable, forwardRef } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
-import { JwtPayload } from '../auth/types/jwt-payload.type';
 import { ArticleService } from '../article/article.service';
+import { JwtPayload } from '../auth/types/jwt-payload.type';
+import { ForbiddenError } from '../common/errors/forbidden.error';
+import { NotFoundError } from '../common/errors/not-found.error';
+import { UnprocessableEntityError } from '../common/errors/unprocessable-entity.error';
 import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
 import { sortItems } from '../common/utils/sort.util';
 import { CommentRepository } from './comment.repository';
@@ -54,7 +50,7 @@ export class CommentService {
     const comment = await this.commentRepository.findOne(id);
 
     if (!comment) {
-      throw new NotFoundException(`Comment with id ${id} not found`);
+      throw new NotFoundError(`Comment with id ${id} not found`);
     }
 
     return comment;
@@ -69,7 +65,7 @@ export class CommentService {
     );
 
     if (!articleExists) {
-      throw new UnprocessableEntityException(
+      throw new UnprocessableEntityError(
         `Article with id ${createCommentDto.articleId} does not exist`,
       );
     }
@@ -85,11 +81,11 @@ export class CommentService {
     const comment = await this.commentRepository.findOne(id);
 
     if (!comment) {
-      throw new NotFoundException(`Comment with id ${id} not found`);
+      throw new NotFoundError(`Comment with id ${id} not found`);
     }
 
     if (user.role !== UserRole.admin && comment.authorId !== user.userId) {
-      throw new ForbiddenException('You can delete only your own comments');
+      throw new ForbiddenError('You can delete only your own comments');
     }
 
     await this.commentRepository.remove(id);

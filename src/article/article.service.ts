@@ -1,14 +1,10 @@
-import {
-  ForbiddenException,
-  Inject,
-  Injectable,
-  NotFoundException,
-  forwardRef,
-} from '@nestjs/common';
+import { Inject, Injectable, forwardRef } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { JwtPayload } from '../auth/types/jwt-payload.type';
 import { CommentService } from '../comment/comment.service';
 import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
+import { ForbiddenError } from '../common/errors/forbidden.error';
+import { NotFoundError } from '../common/errors/not-found.error';
 import { sortItems } from '../common/utils/sort.util';
 import {
   ArticleRepository,
@@ -71,7 +67,7 @@ export class ArticleService {
     const article = await this.articleRepository.findOne(id);
 
     if (!article) {
-      throw new NotFoundException(`Article with id ${id} not found`);
+      throw new NotFoundError(`Article with id ${id} not found`);
     }
 
     return article;
@@ -101,11 +97,11 @@ export class ArticleService {
     const article = await this.articleRepository.findOne(id);
 
     if (!article) {
-      throw new NotFoundException(`Article with id ${id} not found`);
+      throw new NotFoundError(`Article with id ${id} not found`);
     }
 
     if (user.role !== UserRole.admin && article.authorId !== user.userId) {
-      throw new ForbiddenException('You can update only your own articles');
+      throw new ForbiddenError('You can update only your own articles');
     }
 
     const data: UpdateArticleData = {
@@ -123,7 +119,7 @@ export class ArticleService {
     const article = await this.articleRepository.findOne(id);
 
     if (!article) {
-      throw new NotFoundException(`Article with id ${id} not found`);
+      throw new NotFoundError(`Article with id ${id} not found`);
     }
 
     await this.commentService.deleteByArticleId(id);

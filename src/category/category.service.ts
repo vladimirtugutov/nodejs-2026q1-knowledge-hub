@@ -1,17 +1,13 @@
-import {
-  Inject,
-  Injectable,
-  NotFoundException,
-  forwardRef,
-} from '@nestjs/common';
+import { Inject, Injectable, forwardRef } from '@nestjs/common';
+import { ArticleService } from '../article/article.service';
+import { NotFoundError } from '../common/errors/not-found.error';
+import { PaginationDto } from '../common/dto/pagination.dto';
+import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
+import { sortItems } from '../common/utils/sort.util';
 import { CategoryRepository } from './category.repository';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { Category } from './entities/category.entity';
-import { ArticleService } from '../article/article.service';
-import { PaginationDto } from '../common/dto/pagination.dto';
-import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
-import { sortItems } from '../common/utils/sort.util';
 
 @Injectable()
 export class CategoryService {
@@ -48,7 +44,7 @@ export class CategoryService {
     const category = await this.categoryRepository.findOne(id);
 
     if (!category) {
-      throw new NotFoundException(`Category with id ${id} not found`);
+      throw new NotFoundError(`Category with id ${id} not found`);
     }
 
     return category;
@@ -68,7 +64,7 @@ export class CategoryService {
     const category = await this.categoryRepository.findOne(id);
 
     if (!category) {
-      throw new NotFoundException(`Category with id ${id} not found`);
+      throw new NotFoundError(`Category with id ${id} not found`);
     }
 
     const updatedCategory = await this.categoryRepository.update(
@@ -77,7 +73,7 @@ export class CategoryService {
     );
 
     if (!updatedCategory) {
-      throw new NotFoundException(`Category with id ${id} not found`);
+      throw new NotFoundError(`Category with id ${id} not found`);
     }
 
     return updatedCategory;
@@ -87,7 +83,7 @@ export class CategoryService {
     const category = await this.categoryRepository.findOne(id);
 
     if (!category) {
-      throw new NotFoundException(`Category with id ${id} not found`);
+      throw new NotFoundError(`Category with id ${id} not found`);
     }
 
     await this.articleService.nullifyCategoryByCategoryId(id);

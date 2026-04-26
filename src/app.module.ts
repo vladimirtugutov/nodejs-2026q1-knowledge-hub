@@ -4,8 +4,9 @@ import { APP_GUARD } from '@nestjs/core';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { AppLoggerService } from './common/logger/app-logger.service';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { AppLoggerService } from './common/logger/app-logger.service';
 
 import { UserModule } from './user/user.module';
 import { ArticleModule } from './article/article.module';
@@ -35,6 +36,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
     AppService,
     AppLoggerService,
     LoggingInterceptor,
+    GlobalExceptionFilter,
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,

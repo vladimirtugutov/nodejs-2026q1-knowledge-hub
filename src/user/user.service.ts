@@ -1,22 +1,18 @@
-import {
-  ConflictException,
-  ForbiddenException,
-  Inject,
-  Injectable,
-  NotFoundException,
-  forwardRef,
-} from '@nestjs/common';
+import { Inject, Injectable, forwardRef } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdatePasswordDto } from './dto/update-password.dto';
-import { UserResponse } from './entities/user.entity';
-import { excludePassword } from './utils/user.utils';
-import { UserRepository } from './user.repository';
 import { ArticleService } from '../article/article.service';
 import { CommentService } from '../comment/comment.service';
+import { ConflictError } from '../common/errors/conflict.error';
+import { ForbiddenError } from '../common/errors/forbidden.error';
+import { NotFoundError } from '../common/errors/not-found.error';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
 import { sortItems } from '../common/utils/sort.util';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdatePasswordDto } from './dto/update-password.dto';
+import { UserResponse } from './entities/user.entity';
+import { UserRepository } from './user.repository';
+import { excludePassword } from './utils/user.utils';
 
 @Injectable()
 export class UserService {
@@ -60,7 +56,7 @@ export class UserService {
     const user = await this.userRepository.findOne(id);
 
     if (!user) {
-      throw new NotFoundException(`User with id ${id} not found`);
+      throw new NotFoundError(`User with id ${id} not found`);
     }
 
     return excludePassword(user);
@@ -73,7 +69,7 @@ export class UserService {
     );
 
     if (loginTaken) {
-      throw new ConflictException(
+      throw new ConflictError(
         `User with login ${createUserDto.login} already exists`,
       );
     }
@@ -96,7 +92,7 @@ export class UserService {
     const user = await this.userRepository.findOne(id);
 
     if (!user) {
-      throw new NotFoundException(`User with id ${id} not found`);
+      throw new NotFoundError(`User with id ${id} not found`);
     }
 
     const isOldPasswordValid = await bcrypt.compare(
@@ -105,7 +101,7 @@ export class UserService {
     );
 
     if (!isOldPasswordValid) {
-      throw new ForbiddenException('Old password is incorrect');
+      throw new ForbiddenError('Old password is incorrect');
     }
 
     const hashedPassword = await bcrypt.hash(updatePasswordDto.newPassword, 10);
@@ -115,7 +111,7 @@ export class UserService {
     });
 
     if (!updatedUser) {
-      throw new NotFoundException(`User with id ${id} not found`);
+      throw new NotFoundError(`User with id ${id} not found`);
     }
 
     return excludePassword(updatedUser);
@@ -125,7 +121,7 @@ export class UserService {
     const user = await this.userRepository.findOne(id);
 
     if (!user) {
-      throw new NotFoundException(`User with id ${id} not found`);
+      throw new NotFoundError(`User with id ${id} not found`);
     }
 
     await this.articleService.nullifyAuthorByUserId(id);
