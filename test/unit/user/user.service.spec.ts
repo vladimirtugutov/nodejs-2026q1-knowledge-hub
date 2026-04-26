@@ -74,7 +74,7 @@ describe('UserService', () => {
     it('should create user and exclude password from response', async () => {
       mockUserRepository.findAll.mockResolvedValue([]);
 
-      vi.spyOn(bcrypt, 'hash').mockResolvedValue('hashed-password' as never);
+      (bcrypt.hash as any).mockResolvedValue('hashed-password');
 
       mockUserRepository.create.mockResolvedValue({
         id: '1',
