@@ -1,21 +1,21 @@
-import { Injectable, Logger, NestMiddleware } from '@nestjs/common';
+import { Injectable, NestMiddleware } from '@nestjs/common';
 import { NextFunction, Request, Response } from 'express';
+import { AppLoggerService } from '../logger/app-logger.service';
+import { sanitizeForLogging } from '../logger/log-sanitizer.util';
 
 @Injectable()
 export class LoggerMiddleware implements NestMiddleware {
-  private readonly logger = new Logger(LoggerMiddleware.name);
+  constructor(private readonly logger: AppLoggerService) {}
 
-  use(req: Request, res: Response, next: NextFunction): void {
-    const { method, originalUrl } = req;
-    const startedAt = Date.now();
+  use(req: Request, _res: Response, next: NextFunction): void {
+    const payload = {
+      method: req.method,
+      url: req.originalUrl,
+      query: sanitizeForLogging(req.query),
+      body: sanitizeForLogging(req.body),
+    };
 
-    res.on('finish', () => {
-      const duration = Date.now() - startedAt;
-      this.logger.log(
-        `${method} ${originalUrl} ${res.statusCode} - ${duration}ms`,
-      );
-    });
-
+    this.logger.log(payload, LoggerMiddleware.name);
     next();
   }
 }

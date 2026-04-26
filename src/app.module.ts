@@ -4,6 +4,7 @@ import { APP_GUARD } from '@nestjs/core';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AppLoggerService } from './common/logger/app-logger.service';
 
 import { UserModule } from './user/user.module';
 import { ArticleModule } from './article/article.module';
@@ -31,6 +32,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
   controllers: [AppController],
   providers: [
     AppService,
+    AppLoggerService,
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
