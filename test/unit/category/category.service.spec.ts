@@ -8,6 +8,8 @@ import { NotFoundError } from '../../../src/common/errors/not-found.error';
 import { CreateCategoryDto } from '../../../src/category/dto/create-category.dto';
 import { UpdateCategoryDto } from '../../../src/category/dto/update-category.dto';
 
+import { ForbiddenError } from '../../../src/common/errors/forbidden.error';
+
 const categoryRepositoryMock = {
   findAll: vi.fn(),
   findOne: vi.fn(),
@@ -153,49 +155,49 @@ describe('CategoryService', () => {
     });
 
     it('should create category with null description if description is undefined', async () => {
-  const dto = {
-    name: 'TestCategory',
-  } as CreateCategoryDto;
+      const dto = {
+        name: 'TestCategory',
+      } as CreateCategoryDto;
 
-  const created = makeCategory({
-    id: '1',
-    name: dto.name,
-    description: null,
-  });
+      const created = makeCategory({
+        id: '1',
+        name: dto.name,
+        description: null,
+      });
 
-  categoryRepositoryMock.create.mockResolvedValue(created);
+      categoryRepositoryMock.create.mockResolvedValue(created);
 
-  const result = await service.create(dto);
+      const result = await service.create(dto);
 
-  expect(categoryRepositoryMock.create).toHaveBeenCalledWith({
-    name: dto.name,
-    description: null,
-  });
-  expect(result).toEqual(created);
-});
+      expect(categoryRepositoryMock.create).toHaveBeenCalledWith({
+        name: dto.name,
+        description: null,
+      });
+      expect(result).toEqual(created);
+    });
 
-it('should keep empty string description as is', async () => {
-  const dto: CreateCategoryDto = {
-    name: 'TestCategory',
-    description: '',
-  };
+    it('should keep empty string description as is', async () => {
+      const dto: CreateCategoryDto = {
+        name: 'TestCategory',
+        description: '',
+      };
 
-  const created = makeCategory({
-    id: '1',
-    name: dto.name,
-    description: '',
-  });
+      const created = makeCategory({
+        id: '1',
+        name: dto.name,
+        description: '',
+      });
 
-  categoryRepositoryMock.create.mockResolvedValue(created);
+      categoryRepositoryMock.create.mockResolvedValue(created);
 
-  const result = await service.create(dto);
+      const result = await service.create(dto);
 
-  expect(categoryRepositoryMock.create).toHaveBeenCalledWith({
-    name: dto.name,
-    description: '',
-  });
-  expect(result).toEqual(created);
-});
+      expect(categoryRepositoryMock.create).toHaveBeenCalledWith({
+        name: dto.name,
+        description: '',
+      });
+      expect(result).toEqual(created);
+    });
   });
 
   describe('update', () => {
@@ -213,49 +215,92 @@ it('should keep empty string description as is', async () => {
     });
 
     it('should update only name', async () => {
-  const existed = makeCategory();
+      const existed = makeCategory();
+
+      categoryRepositoryMock.findOne.mockResolvedValue(existed);
+      categoryRepositoryMock.update.mockResolvedValue({
+        ...existed,
+        name: 'Updated name',
+      });
+
+      const dto: UpdateCategoryDto = {
+        name: 'Updated name',
+      };
+
+      const result = await service.update(existed.id, dto);
+
+      expect(categoryRepositoryMock.update).toHaveBeenCalledWith(existed.id, {
+        name: 'Updated name',
+      });
+      expect(result.name).toBe('Updated name');
+      expect(result.description).toBe(existed.description);
+    });
+
+    it('should update only description', async () => {
+      const existed = makeCategory();
+
+      categoryRepositoryMock.findOne.mockResolvedValue(existed);
+      categoryRepositoryMock.update.mockResolvedValue({
+        ...existed,
+        description: 'Updated description',
+      });
+
+      const dto: UpdateCategoryDto = {
+        description: 'Updated description',
+      };
+
+      const result = await service.update(existed.id, dto);
+
+      expect(categoryRepositoryMock.update).toHaveBeenCalledWith(existed.id, {
+        description: 'Updated description',
+      });
+      expect(result.description).toBe('Updated description');
+      expect(result.name).toBe(existed.name);
+    });
+
+   it('should allow update description without throwing error if user is admin', async () => {
+  const existed = makeCategory({ id: 'cat1', authorId: '123' });
 
   categoryRepositoryMock.findOne.mockResolvedValue(existed);
   categoryRepositoryMock.update.mockResolvedValue({
     ...existed,
-    name: 'Updated name',
-  });
-
-  const dto: UpdateCategoryDto = {
-    name: 'Updated name',
-  };
-
-  const result = await service.update(existed.id, dto);
-
-  expect(categoryRepositoryMock.update).toHaveBeenCalledWith(existed.id, {
-    name: 'Updated name',
-  });
-  expect(result.name).toBe('Updated name');
-  expect(result.description).toBe(existed.description);
-});
-
-it('should update only description', async () => {
-  const existed = makeCategory();
-
-  categoryRepositoryMock.findOne.mockResolvedValue(existed);
-  categoryRepositoryMock.update.mockResolvedValue({
-    ...existed,
     description: 'Updated description',
   });
 
-  const dto: UpdateCategoryDto = {
-    description: 'Updated description',
-  };
+  const result = await service.update(
+    existed.id,
+    { description: 'Updated description' },
+  );
 
-  const result = await service.update(existed.id, dto);
-
-  expect(categoryRepositoryMock.update).toHaveBeenCalledWith(existed.id, {
-    description: 'Updated description',
-  });
+  expect(categoryRepositoryMock.update).toHaveBeenCalledWith(
+    existed.id,
+    { description: 'Updated description' },
+  );
   expect(result.description).toBe('Updated description');
-  expect(result.name).toBe(existed.name);
 });
 
+    it('should update description successfully', async () => {
+  const existed = makeCategory({ id: 'cat1', authorId: '123' });
+
+  categoryRepositoryMock.findOne.mockResolvedValue(existed);
+  categoryRepositoryMock.update.mockResolvedValue({
+    ...existed,
+    description: 'Updated description',
+  });
+
+  const result = await service.update(
+    existed.id,
+    { description: 'Updated description' },
+  );
+
+  expect(categoryRepositoryMock.update).toHaveBeenCalledWith(existed.id, {
+    description: 'Updated description',
+  });
+  expect(result).toEqual({
+    ...existed,
+    description: 'Updated description',
+  });
+});
   });
 
   describe('remove', () => {
@@ -283,7 +328,5 @@ it('should update only description', async () => {
       );
       expect(categoryRepositoryMock.remove).toHaveBeenCalledWith(category.id);
     });
-    
   });
-  
 });
