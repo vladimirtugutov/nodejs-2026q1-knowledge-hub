@@ -30,3 +30,11 @@ export const analyzeResponseSchema = {
   },
   required: ['analysis', 'suggestions', 'severity'],
 };
+
+export const generateResponseSchema = {
+  type: 'OBJECT',
+  properties: {
+    text: { type: 'STRING' },
+  },
+  required: ['text'],
+};

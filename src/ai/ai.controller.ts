@@ -9,15 +9,15 @@ import {
   Res,
 } from '@nestjs/common';
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiForbiddenResponse,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
   ApiTooManyRequestsResponse,
   ApiUnauthorizedResponse,
-  ApiForbiddenResponse,
-  ApiNotFoundResponse,
-  ApiBadRequestResponse,
 } from '@nestjs/swagger';
 import { Response } from 'express';
 import { UserRole } from '@prisma/client';

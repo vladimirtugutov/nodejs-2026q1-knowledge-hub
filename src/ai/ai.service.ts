@@ -4,30 +4,31 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { randomUUID } from 'crypto';
 import { UserRole } from '@prisma/client';
 import { ArticleService } from '../article/article.service';
 import { JwtPayload } from '../auth/types/jwt-payload.type';
 import { ForbiddenError } from '../common/errors/forbidden.error';
 import { AiCacheService } from './cache/ai-cache.service';
-import {
-  AnalyzeArticleDto,
-  AnalyzeTask,
-} from './dto/analyze-article.dto';
+import { AiContextService } from './context/ai-context.service';
+import { AnalyzeArticleDto, AnalyzeTask } from './dto/analyze-article.dto';
 import { AnalyzeArticleResponseDto } from './dto/analyze-article-response.dto';
-import {
-  SummarizeArticleDto,
-  SummaryLength,
-} from './dto/summarize-article.dto';
+import { GenerateDto } from './dto/generate.dto';
+import { GenerateResponseDto } from './dto/generate-response.dto';
+import { SummarizeArticleDto, SummaryLength } from './dto/summarize-article.dto';
 import { SummarizeArticleResponseDto } from './dto/summarize-article-response.dto';
 import { TranslateArticleDto } from './dto/translate-article.dto';
 import { TranslateArticleResponseDto } from './dto/translate-article-response.dto';
+import { UsageResponseDto } from './dto/usage-response.dto';
 import { GeminiService } from './gemini/gemini.service';
 import {
   analyzeResponseSchema,
+  generateResponseSchema,
   summarizeResponseSchema,
   translateResponseSchema,
 } from './gemini/schemas';
 import { buildAnalyzePrompt } from './prompts/analyze.prompt';
+import { buildGeneratePrompt } from './prompts/generate.prompt';
 import { buildSummarizePrompt } from './prompts/summarize.prompt';
 import { buildTranslatePrompt } from './prompts/translate.prompt';
 import { AiRateLimitService } from './rate-limit/ai-rate-limit.service';
@@ -43,11 +44,10 @@ export class AiService {
     private readonly aiCacheService: AiCacheService,
     private readonly aiRateLimitService: AiRateLimitService,
     private readonly aiUsageService: AiUsageService,
+    private readonly aiContextService: AiContextService,
     private readonly configService: ConfigService,
   ) {
-    this.cacheTtlSec = Number(
-      this.configService.get<string>('AI_CACHE_TTL_SEC', '300'),
-    );
+    this.cacheTtlSec = Number(this.configService.get<string>('AI_CACHE_TTL_SEC', '300'));
   }
 
   async summarize(
@@ -55,17 +55,21 @@ export class AiService {
     dto: SummarizeArticleDto,
     user: JwtPayload,
   ): Promise<SummarizeArticleResponseDto> {
+    const startedAt = Date.now();
     const article = await this.assertArticleAccess(articleId, user);
     this.checkRateLimit(`summarize:${user.userId}`);
 
     const maxLength = dto.maxLength ?? SummaryLength.MEDIUM;
     const cacheKey = `summarize:${article.id}:${article.updatedAt.toISOString()}:${maxLength}`;
-    const cached =
-      this.aiCacheService.get<SummarizeArticleResponseDto>(cacheKey);
+    const cached = this.aiCacheService.get<SummarizeArticleResponseDto>(cacheKey);
 
     if (cached) {
+      this.aiUsageService.trackCacheHit();
+      this.aiUsageService.track('summarize', Date.now() - startedAt);
       return cached;
     }
+
+    this.aiUsageService.trackCacheMiss();
 
     const prompt = buildSummarizePrompt({
       title: article.title,
@@ -86,7 +90,7 @@ export class AiService {
     };
 
     this.aiCacheService.set(cacheKey, response, this.cacheTtlSec);
-    this.aiUsageService.track('summarize');
+    this.aiUsageService.track('summarize', Date.now() - startedAt);
     return response;
   }
 
@@ -95,16 +99,20 @@ export class AiService {
     dto: TranslateArticleDto,
     user: JwtPayload,
   ): Promise<TranslateArticleResponseDto> {
+    const startedAt = Date.now();
     const article = await this.assertArticleAccess(articleId, user);
     this.checkRateLimit(`translate:${user.userId}`);
 
     const cacheKey = `translate:${article.id}:${article.updatedAt.toISOString()}:${dto.targetLanguage}:${dto.sourceLanguage ?? 'auto'}`;
-    const cached =
-      this.aiCacheService.get<TranslateArticleResponseDto>(cacheKey);
+    const cached = this.aiCacheService.get<TranslateArticleResponseDto>(cacheKey);
 
     if (cached) {
+      this.aiUsageService.trackCacheHit();
+      this.aiUsageService.track('translate', Date.now() - startedAt);
       return cached;
     }
+
+    this.aiUsageService.trackCacheMiss();
 
     const prompt = buildTranslatePrompt({
       title: article.title,
@@ -125,7 +133,7 @@ export class AiService {
     };
 
     this.aiCacheService.set(cacheKey, response, this.cacheTtlSec);
-    this.aiUsageService.track('translate');
+    this.aiUsageService.track('translate', Date.now() - startedAt);
     return response;
   }
 
@@ -134,10 +142,12 @@ export class AiService {
     dto: AnalyzeArticleDto,
     user: JwtPayload,
   ): Promise<AnalyzeArticleResponseDto> {
+    const startedAt = Date.now();
     const article = await this.assertArticleAccess(articleId, user);
     this.checkRateLimit(`analyze:${user.userId}`);
 
     const task = dto.task ?? AnalyzeTask.REVIEW;
+
     const prompt = buildAnalyzePrompt({
       title: article.title,
       content: article.content,
@@ -157,8 +167,50 @@ export class AiService {
       severity: parsed.severity ?? 'info',
     };
 
-    this.aiUsageService.track('analyze');
+    this.aiUsageService.track('analyze', Date.now() - startedAt);
     return response;
+  }
+
+  async generate(
+    dto: GenerateDto,
+    user: JwtPayload,
+  ): Promise<GenerateResponseDto> {
+    const startedAt = Date.now();
+    this.checkRateLimit(`generate:${user.userId}`);
+
+    const sessionId = dto.sessionId ?? randomUUID();
+    const context = this.aiContextService.getContext(sessionId);
+
+    const prompt = buildGeneratePrompt({
+      prompt: dto.prompt,
+      context,
+    });
+
+    const result = await this.geminiService.generateJson<{ text: string }>(
+      prompt,
+      generateResponseSchema,
+    );
+
+    this.aiContextService.append(sessionId, {
+      role: 'user',
+      text: dto.prompt,
+    });
+
+    this.aiContextService.append(sessionId, {
+      role: 'assistant',
+      text: result.text,
+    });
+
+    this.aiUsageService.track('generate', Date.now() - startedAt);
+
+    return {
+      text: result.text,
+      sessionId,
+    };
+  }
+
+  getUsage(): UsageResponseDto {
+    return this.aiUsageService.getStats();
   }
 
   private async assertArticleAccess(articleId: string, user: JwtPayload) {
