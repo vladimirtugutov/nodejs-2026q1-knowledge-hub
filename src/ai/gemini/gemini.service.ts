@@ -1,6 +1,5 @@
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AppLoggerService } from '../../common/logger/app-logger.service';
 
 @Injectable()
 export class GeminiService {
@@ -11,7 +10,6 @@ export class GeminiService {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly logger: AppLoggerService,
   ) {
     this.apiKey = this.configService.getOrThrow<string>('GEMINI_API_KEY');
     this.model = this.configService.get<string>('GEMINI_MODEL', 'gemini-2.5-flash');
@@ -56,7 +54,7 @@ export class GeminiService {
 
         if (!response.ok) {
           const body = await response.text();
-          this.logger.error(
+          console.error(
             {
               message: 'Gemini request failed',
               statusCode: response.status,
@@ -79,7 +77,7 @@ export class GeminiService {
         return JSON.parse(text) as T;
       } catch (error) {
         if (attempt === 3) {
-          this.logger.error(
+          console.error(
             {
               message: error instanceof Error ? error.message : 'Gemini request failed',
             },
