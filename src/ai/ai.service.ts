@@ -3,6 +3,7 @@ import {
   HttpStatus,
   Injectable,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { UserRole } from '@prisma/client';
 import { ArticleService } from '../article/article.service';
 import { JwtPayload } from '../auth/types/jwt-payload.type';
@@ -21,12 +22,16 @@ import { SummarizeArticleResponseDto } from './dto/summarize-article-response.dt
 import { TranslateArticleDto } from './dto/translate-article.dto';
 import { TranslateArticleResponseDto } from './dto/translate-article-response.dto';
 import { GeminiService } from './gemini/gemini.service';
+import {
+  analyzeResponseSchema,
+  summarizeResponseSchema,
+  translateResponseSchema,
+} from './gemini/schemas';
 import { buildAnalyzePrompt } from './prompts/analyze.prompt';
 import { buildSummarizePrompt } from './prompts/summarize.prompt';
 import { buildTranslatePrompt } from './prompts/translate.prompt';
 import { AiRateLimitService } from './rate-limit/ai-rate-limit.service';
 import { AiUsageService } from './usage/ai-usage.service';
-import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AiService {
@@ -68,7 +73,10 @@ export class AiService {
       maxLength,
     });
 
-    const result = await this.geminiService.generateJson<{ summary: string }>(prompt);
+    const result = await this.geminiService.generateJson<{ summary: string }>(
+      prompt,
+      summarizeResponseSchema,
+    );
 
     const response: SummarizeArticleResponseDto = {
       articleId: article.id,
@@ -108,7 +116,7 @@ export class AiService {
     const result = await this.geminiService.generateJson<{
       translatedText: string;
       detectedLanguage: string;
-    }>(prompt);
+    }>(prompt, translateResponseSchema);
 
     const response: TranslateArticleResponseDto = {
       articleId: article.id,
@@ -136,13 +144,11 @@ export class AiService {
       task,
     });
 
-    const result = await this.geminiService.generateJson<AnalyzeArticleResponseDto>({
-      } as never);
     const parsed = await this.geminiService.generateJson<{
       analysis: string;
       suggestions: string[];
       severity: 'info' | 'warning' | 'error';
-    }>(prompt);
+    }>(prompt, analyzeResponseSchema);
 
     const response: AnalyzeArticleResponseDto = {
       articleId: article.id,

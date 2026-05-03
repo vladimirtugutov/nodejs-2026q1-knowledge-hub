@@ -8,16 +8,18 @@ export class GeminiService {
   private readonly timeoutMs: number;
   private readonly baseUrl = 'https://generativelanguage.googleapis.com/v1beta';
 
-  constructor(
-    private readonly configService: ConfigService,
-  ) {
+  constructor(private readonly configService: ConfigService) {
     this.apiKey = this.configService.getOrThrow<string>('GEMINI_API_KEY');
     this.model = this.configService.get<string>('GEMINI_MODEL', 'gemini-2.5-flash');
     this.timeoutMs = Number(this.configService.get<string>('AI_TIMEOUT_MS', '15000'));
   }
 
-  async generateJson<T>(prompt: string): Promise<T> {
-    const url = `${this.baseUrl}/models/${this.model}:generateContent`;
+  async generateJson<T>(prompt: string, responseSchema?: object): Promise<T> {
+    const modelPath = this.model.startsWith('models/')
+      ? this.model
+      : `models/${this.model}`;
+
+    const url = `${this.baseUrl}/${modelPath}:generateContent`;
 
     for (let attempt = 1; attempt <= 3; attempt += 1) {
       const controller = new AbortController();
@@ -40,6 +42,7 @@ export class GeminiService {
             generationConfig: {
               temperature: 0.2,
               responseMimeType: 'application/json',
+              ...(responseSchema ? { responseSchema } : {}),
             },
           }),
           signal: controller.signal,
@@ -54,21 +57,16 @@ export class GeminiService {
 
         if (!response.ok) {
           const body = await response.text();
-          console.error(
-            {
-              message: 'Gemini request failed',
-              statusCode: response.status,
-              body,
-            },
-            undefined,
-            GeminiService.name,
-          );
+          console.error({
+            message: 'Gemini request failed',
+            statusCode: response.status,
+            body,
+          });
           throw new ServiceUnavailableException('AI provider is unavailable');
         }
 
         const data = await response.json();
-        const text =
-          data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
         if (!text || typeof text !== 'string') {
           throw new ServiceUnavailableException('AI provider returned empty response');
@@ -77,13 +75,7 @@ export class GeminiService {
         return JSON.parse(text) as T;
       } catch (error) {
         if (attempt === 3) {
-          console.error(
-            {
-              message: error instanceof Error ? error.message : 'Gemini request failed',
-            },
-            error instanceof Error ? error.stack : undefined,
-            GeminiService.name,
-          );
+          console.error(error);
           throw new ServiceUnavailableException('AI provider is unavailable');
         }
 
