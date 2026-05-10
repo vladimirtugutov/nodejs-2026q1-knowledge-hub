@@ -11,7 +11,7 @@ export interface RagChunkMetadata {
 export interface RagChunk {
   id: string;
   text: string;
-  meta RagChunkMetadata;
+  meta: RagChunkMetadata;
 }
 
 export interface VectorPointPayload extends RagChunkMetadata {
@@ -30,4 +30,9 @@ export interface ConversationMessage {
   role: ConversationRole;
   content: string;
   createdAt: string;
+}
+
+export interface ChunkingOptions {
+  chunkSize: number;
+  chunkOverlap: number;
 }

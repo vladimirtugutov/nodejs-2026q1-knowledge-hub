@@ -35,7 +35,7 @@ export class ChunkingService {
       chunks.push({
         id: `${article.articleId}:${index}`,
         text,
-        metadata: {
+        meta: {
           articleId: article.articleId,
           title: article.title,
           status: article.status,

@@ -11,7 +11,7 @@ export interface RagChunkMetadata {
 export interface RagChunk {
   id: string;
   text: string;
-  meta RagChunkMetadata;
+  meta: RagChunkMetadata;
 }
 
 export interface VectorPointPayload extends RagChunkMetadata {
