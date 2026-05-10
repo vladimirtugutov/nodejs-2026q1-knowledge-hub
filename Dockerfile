@@ -1,12 +1,13 @@
 FROM node:24-alpine AS builder
 WORKDIR /app
 
+ENV DATABASE_URL=postgresql://postgres:password@db:5432/knowledge_hub?schema=public
+
 COPY package*.json ./
 RUN npm ci
 
 COPY prisma ./prisma
 COPY prisma.config.ts ./
-ENV DATABASE_URL=postgresql://postgres:password@db:5432/knowledge_hub?schema=public
 RUN npx prisma generate
 
 COPY . .
@@ -24,13 +25,12 @@ ENV DATABASE_URL=postgresql://postgres:password@db:5432/knowledge_hub?schema=pub
 COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
-COPY --chown=nestjs:nodejs prisma ./prisma
-COPY --chown=nestjs:nodejs prisma.config.ts ./
-RUN npx prisma generate
-
-COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
 USER nestjs
 EXPOSE 4000
 
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/main"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main"]

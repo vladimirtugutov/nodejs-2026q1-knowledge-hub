@@ -16,26 +16,14 @@ git clone {repository URL}
 ```
 npm install
 ```
+## Docker
+
+docker compose build --no-cache app
+docker compose up -d
 
 ## Environment variables
 
 Create a `.env` file in the project root.
-
-Example:
-
-```env
-PORT=4000
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/knowledge_hub
-JWT_SECRET=your_jwt_secret
-JWT_ACCESS_EXPIRES_IN=15m
-JWT_REFRESH_EXPIRES_IN=7d
-
-GEMINI_API_KEY=your_gemini_api_key
-GEMINI_MODEL=gemini-2.5-flash
-AI_RATE_LIMIT_RPM=20
-AI_CACHE_TTL_SEC=300
-AI_TIMEOUT_MS=15000
-```
 
 ## Gemini AI setup
 
