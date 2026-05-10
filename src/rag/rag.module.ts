@@ -17,6 +17,7 @@ import { ChunkingService } from './chunking/chunking.service';
     RagIndexerService,
     RagRetrieverService,
     RagConversationService,
+    RagRetrieverService,
     VectorDbService,
     ChunkingService,
   ],

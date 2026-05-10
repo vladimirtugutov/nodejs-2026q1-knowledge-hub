@@ -1,4 +1,4 @@
-export class RagSearchResultItemDto {
+export class RagSearchResultDto {
   articleId!: string;
   articleTitle!: string;
   chunk!: string;
@@ -6,5 +6,5 @@ export class RagSearchResultItemDto {
 }
 
 export class RagSearchResponseDto {
-  results!: RagSearchResultItemDto[];
+  results!: RagSearchResultDto[];
 }

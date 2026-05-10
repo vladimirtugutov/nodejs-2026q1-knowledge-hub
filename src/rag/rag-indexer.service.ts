@@ -1,25 +1,28 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ArticleStatus } from '../common/enums/article-status.enum';
-import { ReindexRequestDto } from './dto/reindex-request.dto';
-import { ReindexResponseDto } from './dto/reindex-response.dto';
 import { GeminiService } from '../ai/gemini/gemini.service';
 import { ArticleService } from '../article/article.service';
-import { ChunkingService } from './chunking/chunking.service';
 import { QueryArticleDto } from '../article/dto/query-article.dto';
 import { Article } from '../article/entities/article.entity';
+import { ArticleStatus } from '../common/enums/article-status.enum';
+import { ChunkingService } from './chunking/chunking.service';
+import { ReindexRequestDto } from './dto/reindex-request.dto';
+import { ReindexResponseDto } from './dto/reindex-response.dto';
+
+interface MockVectorPayload {
+  articleId: string;
+  title: string;
+  text: string;
+  status: ArticleStatus;
+  categoryId: string | null;
+  tags: string[];
+  chunkIndex: number;
+  updatedAt: string;
+}
 
 interface MockVectorPoint {
   id: string;
   vector: number[];
-  payload: {
-    articleId: string;
-    title: string;
-    status: ArticleStatus;
-    categoryId: string | null;
-    tags: string[];
-    chunkIndex: number;
-    updatedAt: string;
-  };
+  payload: MockVectorPayload;
 }
 
 @Injectable()
@@ -69,7 +72,10 @@ export class RagIndexerService {
         this.mockStorage.set(chunk.id, {
           id: chunk.id,
           vector: chunk.embedding,
-          payload: chunk.meta,
+          payload: {
+            ...chunk.meta,
+            text: chunk.text,
+          },
         });
       }
 
@@ -101,6 +107,7 @@ export class RagIndexerService {
     this.logger.log(
       `Deleted ${deleted} indexed chunks for article ${articleId}`,
     );
+
     return deleted;
   }
 
@@ -111,13 +118,17 @@ export class RagIndexerService {
     };
   }
 
+  getAllPoints(): MockVectorPoint[] {
+    return Array.from(this.mockStorage.values());
+  }
+
   private async getArticlesForIndexing(
     dto: ReindexRequestDto,
   ): Promise<Article[]> {
     const query: QueryArticleDto = {};
 
     if (dto.onlyPublished ?? true) {
-      query.status = 'PUBLISHED' as never;
+      query.status = this.getPublishedQueryStatus();
     }
 
     const result = await this.articleService.findAll(query);
@@ -129,6 +140,10 @@ export class RagIndexerService {
     }
 
     return articles;
+  }
+
+  private getPublishedQueryStatus(): QueryArticleDto['status'] {
+    return 'PUBLISHED' as QueryArticleDto['status'];
   }
 
   private mapArticleStatus(status: string): ArticleStatus {

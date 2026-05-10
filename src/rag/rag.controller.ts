@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   Param,
+  ParseUUIDPipe,
   Post,
 } from '@nestjs/common';
 import { RagService } from './rag.service';
@@ -45,7 +46,9 @@ export class RagController {
 
   @Delete('index/articles/:articleId')
   @HttpCode(204)
-  async deleteArticle(@Param('articleId') articleId: string): Promise<void> {
+  async deleteArticle(
+    @Param('articleId', new ParseUUIDPipe()) articleId: string,
+  ): Promise<void> {
     await this.ragIndexerService.deleteArticle(articleId);
   }
 
@@ -56,6 +59,7 @@ export class RagController {
   }
 
   @Get('index/stats')
+  @HttpCode(200)
   getStats() {
     return this.ragIndexerService.getCollectionStats();
   }

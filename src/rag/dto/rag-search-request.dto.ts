@@ -1,35 +1,30 @@
-import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
-  IsIn,
+  IsEnum,
   IsInt,
-  IsNotEmpty,
   IsOptional,
   IsString,
-  IsUUID,
   Max,
   Min,
 } from 'class-validator';
+import { ArticleStatus } from '../../common/enums/article-status.enum';
 
 export class RagSearchRequestDto {
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
-  @IsNotEmpty()
   query!: string;
 
   @IsOptional()
-  @Type(() => Number)
   @IsInt()
   @Min(1)
   @Max(20)
   limit?: number = 5;
 
   @IsOptional()
-  @IsIn(['draft', 'published', 'archived'])
-  articleStatus?: 'draft' | 'published' | 'archived';
+  @IsEnum(ArticleStatus)
+  articleStatus?: ArticleStatus;
 
   @IsOptional()
-  @IsUUID('4')
+  @IsString()
   categoryId?: string;
 
   @IsOptional()
