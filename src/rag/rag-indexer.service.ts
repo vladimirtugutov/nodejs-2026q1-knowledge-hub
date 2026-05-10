@@ -117,7 +117,7 @@ export class RagIndexerService {
     const query: QueryArticleDto = {};
 
     if (dto.onlyPublished ?? true) {
-      query.status = ArticleStatus.PUBLISHED;
+      query.status = 'PUBLISHED' as never;
     }
 
     const result = await this.articleService.findAll(query);

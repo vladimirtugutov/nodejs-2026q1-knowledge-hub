@@ -1,9 +1,7 @@
-import { Type } from 'class-transformer';
 import { IsArray, IsBoolean, IsOptional, IsUUID } from 'class-validator';
 
 export class ReindexRequestDto {
   @IsOptional()
-  @Type(() => Boolean)
   @IsBoolean()
   onlyPublished?: boolean = true;
 
