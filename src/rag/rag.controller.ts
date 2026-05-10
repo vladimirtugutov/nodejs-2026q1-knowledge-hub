@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   HttpCode,
+  NotFoundException,
   Param,
   ParseUUIDPipe,
   Post,
@@ -49,7 +50,13 @@ export class RagController {
   async deleteArticle(
     @Param('articleId', new ParseUUIDPipe()) articleId: string,
   ): Promise<void> {
-    await this.ragIndexerService.deleteArticle(articleId);
+    const deleted = await this.ragIndexerService.deleteArticle(articleId);
+
+    if (deleted === 0) {
+      throw new NotFoundException(
+        `Indexed chunks for article ${articleId} were not found`,
+      );
+    }
   }
 
   @Get('chat/:conversationId/history')

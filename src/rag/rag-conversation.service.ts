@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import { ConversationMessage } from './types/rag.types';
+
+export interface ConversationMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
 
 @Injectable()
 export class RagConversationService {
@@ -9,34 +13,34 @@ export class RagConversationService {
     process.env.RAG_CONVERSATION_MAX_MESSAGES ?? 20,
   );
 
-  createConversationId(): string {
-    return randomUUID();
+  getOrCreateConversationId(conversationId?: string): string {
+    const id = conversationId ?? randomUUID();
+
+    if (!this.conversations.has(id)) {
+      this.conversations.set(id, []);
+    }
+
+    return id;
+  }
+
+  appendMessage(conversationId: string, message: ConversationMessage): void {
+    const history = this.conversations.get(conversationId) ?? [];
+
+    history.push(message);
+
+    const trimmedHistory =
+      history.length > this.maxMessages
+        ? history.slice(-this.maxMessages)
+        : history;
+
+    this.conversations.set(conversationId, trimmedHistory);
   }
 
   getHistory(conversationId: string): ConversationMessage[] {
     return this.conversations.get(conversationId) ?? [];
   }
 
-  appendMessage(
-    conversationId: string,
-    message: Omit<ConversationMessage, 'createdAt'>,
-  ): ConversationMessage[] {
-    const history = this.getHistory(conversationId);
-
-    const nextMessage: ConversationMessage = {
-      ...message,
-      createdAt: new Date().toISOString(),
-    };
-
-    const nextHistory = [...history, nextMessage].slice(-this.maxMessages);
-    this.conversations.set(conversationId, nextHistory);
-
-    return nextHistory;
-  }
-
-  getOrCreateConversationId(conversationId?: string): string {
-    return conversationId?.trim()
-      ? conversationId
-      : this.createConversationId();
+  clear(conversationId: string): void {
+    this.conversations.delete(conversationId);
   }
 }

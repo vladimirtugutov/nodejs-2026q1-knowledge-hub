@@ -2,7 +2,11 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { GeminiService } from '../ai/gemini/gemini.service';
 import { RagChatRequestDto } from './dto/rag-chat-request.dto';
 import { RagChatResponseDto } from './dto/rag-chat-response.dto';
-import { RagConversationService } from './rag-conversation.service';
+import {
+  ConversationMessage,
+  RagConversationService,
+} from './rag-conversation.service';
+
 import { RagRetrieverService } from './rag-retriever.service';
 
 @Injectable()
@@ -67,7 +71,7 @@ export class RagService {
     };
   }
 
-  getConversationHistory(conversationId: string) {
+  getConversationHistory(conversationId: string): ConversationMessage[] {
     return this.ragConversationService.getHistory(conversationId);
   }
 
