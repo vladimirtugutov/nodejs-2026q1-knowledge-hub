@@ -16,6 +16,7 @@ import { CommentModule } from './comment/comment.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { AiModule } from './ai/ai.module';
+import { RagModule } from './rag/rag.module';
 
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
@@ -29,6 +30,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
     PrismaModule,
     AuthModule,
     AiModule,
+    RagModule,
     UserModule,
     ArticleModule,
     CategoryModule,
