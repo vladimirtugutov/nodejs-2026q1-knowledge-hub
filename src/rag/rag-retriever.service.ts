@@ -1,27 +1,11 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { GeminiService } from '../ai/gemini/gemini.service';
-import { RagIndexerService } from './rag-indexer.service';
 import { RagSearchRequestDto } from './dto/rag-search-request.dto';
 import {
   RagSearchResponseDto,
   RagSearchResultDto,
 } from './dto/rag-search-response.dto';
-import { ArticleStatus } from '../common/enums/article-status.enum';
-
-interface SearchablePoint {
-  id: string;
-  vector: number[];
-  payload: {
-    articleId: string;
-    title: string;
-    text: string;
-    status: ArticleStatus;
-    categoryId: string | null;
-    tags: string[];
-    chunkIndex: number;
-    updatedAt: string;
-  };
-}
+import { VectorDbService } from './vector-db.service';
 
 @Injectable()
 export class RagRetrieverService {
@@ -29,7 +13,7 @@ export class RagRetrieverService {
 
   constructor(
     private readonly geminiService: GeminiService,
-    private readonly ragIndexerService: RagIndexerService,
+    private readonly vectorDbService: VectorDbService,
   ) {}
 
   async search(dto: RagSearchRequestDto): Promise<RagSearchResponseDto> {
@@ -42,20 +26,20 @@ export class RagRetrieverService {
     const queryEmbedding = await this.geminiService.embedText(query);
     const limit = Math.min(Math.max(dto.limit ?? 5, 1), 20);
 
-    const points = this.ragIndexerService.getAllPoints() as SearchablePoint[];
+    const filter = this.buildQdrantFilter(dto);
 
-    const results: RagSearchResultDto[] = points
-      .filter((point) => this.matchesFilters(point.payload, dto))
-      .map((point) => ({
-        articleId: point.payload.articleId,
-        articleTitle: point.payload.title,
-        chunk: point.payload.text,
-        similarity: Number(
-          this.cosineSimilarity(queryEmbedding, point.vector).toFixed(6),
-        ),
-      }))
-      .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, limit);
+    const points = await this.vectorDbService.search(
+      queryEmbedding,
+      limit,
+      filter,
+    );
+
+    const results: RagSearchResultDto[] = points.map((point) => ({
+      articleId: point.payload.articleId,
+      articleTitle: point.payload.title,
+      chunk: point.payload.text,
+      similarity: Number(point.score.toFixed(6)),
+    }));
 
     this.logger.log(
       `Search complete: query="${query}", results=${results.length}`,
@@ -64,44 +48,44 @@ export class RagRetrieverService {
     return { results };
   }
 
-  private matchesFilters(
-    payload: SearchablePoint['payload'],
+  private buildQdrantFilter(
     dto: RagSearchRequestDto,
-  ): boolean {
-    if (dto.articleStatus && payload.status !== dto.articleStatus) {
-      return false;
+  ): Record<string, unknown> | undefined {
+    const must: Array<Record<string, unknown>> = [];
+
+    if (dto.articleStatus) {
+      must.push({
+        key: 'status',
+        match: {
+          value: dto.articleStatus,
+        },
+      });
     }
 
-    if (dto.categoryId && payload.categoryId !== dto.categoryId) {
-      return false;
+    if (dto.categoryId) {
+      must.push({
+        key: 'categoryId',
+        match: {
+          value: dto.categoryId,
+        },
+      });
     }
 
     if (dto.tags?.length) {
-      const hasAnyTag = dto.tags.some((tag) => payload.tags.includes(tag));
-      if (!hasAnyTag) {
-        return false;
-      }
+      must.push({
+        should: dto.tags.map((tag) => ({
+          key: 'tags',
+          match: {
+            value: tag,
+          },
+        })),
+      });
     }
 
-    return true;
-  }
-
-  private cosineSimilarity(a: number[], b: number[]): number {
-    if (a.length !== b.length || a.length === 0) {
-      return 0;
+    if (must.length === 0) {
+      return undefined;
     }
 
-    let dot = 0;
-    let normA = 0;
-    let normB = 0;
-
-    for (let i = 0; i < a.length; i += 1) {
-      dot += a[i] * b[i];
-      normA += a[i] * a[i];
-      normB += b[i] * b[i];
-    }
-
-    const denominator = Math.sqrt(normA) * Math.sqrt(normB);
-    return denominator === 0 ? 0 : dot / denominator;
+    return { must };
   }
 }

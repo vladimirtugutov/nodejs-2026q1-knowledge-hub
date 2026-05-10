@@ -67,7 +67,7 @@ export class RagController {
 
   @Get('index/stats')
   @HttpCode(200)
-  getStats() {
+  async getStats() {
     return this.ragIndexerService.getCollectionStats();
   }
 }

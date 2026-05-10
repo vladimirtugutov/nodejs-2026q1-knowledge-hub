@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { v5 as uuidv5 } from 'uuid';
 import { GeminiService } from '../ai/gemini/gemini.service';
 import { ArticleService } from '../article/article.service';
 import { QueryArticleDto } from '../article/dto/query-article.dto';
@@ -7,28 +8,13 @@ import { ArticleStatus } from '../common/enums/article-status.enum';
 import { ChunkingService } from './chunking/chunking.service';
 import { ReindexRequestDto } from './dto/reindex-request.dto';
 import { ReindexResponseDto } from './dto/reindex-response.dto';
+import { QdrantPoint, VectorDbService } from './vector-db.service';
 
-interface MockVectorPayload {
-  articleId: string;
-  title: string;
-  text: string;
-  status: ArticleStatus;
-  categoryId: string | null;
-  tags: string[];
-  chunkIndex: number;
-  updatedAt: string;
-}
-
-interface MockVectorPoint {
-  id: string;
-  vector: number[];
-  payload: MockVectorPayload;
-}
+const QDRANT_POINT_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
 
 @Injectable()
 export class RagIndexerService {
   private readonly logger = new Logger(RagIndexerService.name);
-  private readonly mockStorage = new Map<string, MockVectorPoint>();
   private readonly collection =
     process.env.RAG_VECTOR_COLLECTION ?? 'knowledge_hub_articles';
 
@@ -36,6 +22,7 @@ export class RagIndexerService {
     private readonly geminiService: GeminiService,
     private readonly articleService: ArticleService,
     private readonly chunkingService: ChunkingService,
+    private readonly vectorDbService: VectorDbService,
   ) {}
 
   async reindex(dto: ReindexRequestDto): Promise<ReindexResponseDto> {
@@ -62,22 +49,27 @@ export class RagIndexerService {
       });
 
       const embeddedChunks = await Promise.all(
-        chunks.map(async (chunk) => ({
-          ...chunk,
+        chunks.map(async (chunk, chunkIndex) => ({
+          id: this.buildPointId(article.id, chunkIndex),
+          text: chunk.text,
+          meta: {
+            ...chunk.meta,
+            chunkIndex,
+          },
           embedding: await this.geminiService.embedText(chunk.text),
         })),
       );
 
-      for (const chunk of embeddedChunks) {
-        this.mockStorage.set(chunk.id, {
-          id: chunk.id,
-          vector: chunk.embedding,
-          payload: {
-            ...chunk.meta,
-            text: chunk.text,
-          },
-        });
-      }
+      const pointsToUpsert: QdrantPoint[] = embeddedChunks.map((chunk) => ({
+        id: chunk.id,
+        vector: chunk.embedding,
+        payload: {
+          ...chunk.meta,
+          text: chunk.text,
+        },
+      }));
+
+      await this.vectorDbService.upsertPoints(pointsToUpsert);
 
       indexedArticles += 1;
       indexedChunks += chunks.length;
@@ -95,14 +87,7 @@ export class RagIndexerService {
   }
 
   async deleteArticle(articleId: string): Promise<number> {
-    let deleted = 0;
-
-    for (const [key, value] of this.mockStorage.entries()) {
-      if (value.payload.articleId === articleId) {
-        this.mockStorage.delete(key);
-        deleted += 1;
-      }
-    }
+    const deleted = await this.vectorDbService.deleteByArticleId(articleId);
 
     this.logger.log(
       `Deleted ${deleted} indexed chunks for article ${articleId}`,
@@ -111,15 +96,11 @@ export class RagIndexerService {
     return deleted;
   }
 
-  getCollectionStats(): { totalChunks: number; collection: string } {
-    return {
-      totalChunks: this.mockStorage.size,
-      collection: this.collection,
-    };
-  }
-
-  getAllPoints(): MockVectorPoint[] {
-    return Array.from(this.mockStorage.values());
+  async getCollectionStats(): Promise<{
+    totalChunks: number;
+    collection: string;
+  }> {
+    return this.vectorDbService.getCollectionStats();
   }
 
   private async getArticlesForIndexing(
@@ -160,5 +141,9 @@ export class RagIndexerService {
       default:
         throw new Error(`Unsupported article status: ${status}`);
     }
+  }
+
+  private buildPointId(articleId: string, chunkIndex: number): string {
+    return uuidv5(`${articleId}:${chunkIndex}`, QDRANT_POINT_NAMESPACE);
   }
 }
