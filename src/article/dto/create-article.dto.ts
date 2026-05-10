@@ -21,12 +21,12 @@ export class CreateArticleDto {
   @IsEnum(ArticleStatus)
   status: ArticleStatus;
 
-  @Allow() // ← КЛЮЧЕВОЕ! Разрешает null
+  @Allow()
   @IsOptional()
   @IsUUID('4', { message: 'authorId must be a valid UUID' })
   authorId?: string | null;
 
-  @Allow() // ← КЛЮЧЕВОЕ!
+  @Allow()
   @IsOptional()
   @IsUUID('4', { message: 'categoryId must be a valid UUID' })
   categoryId?: string | null;

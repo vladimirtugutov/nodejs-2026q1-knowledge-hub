@@ -1,7 +1,9 @@
+import { ArticleStatus } from '../../common/enums/article-status.enum';
+
 export interface RagChunkMetadata {
   articleId: string;
   title: string;
-  status: 'draft' | 'published' | 'archived';
+  status: ArticleStatus;
   categoryId: string | null;
   tags: string[];
   chunkIndex: number;

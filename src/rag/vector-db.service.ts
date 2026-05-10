@@ -13,7 +13,9 @@ export class VectorDbService {
     return;
   }
 
-  async upsertChunks(_chunks: Array<RagChunk & { embedding: number[] }>): Promise<void> {
+  async upsertChunks(
+    _chunks: Array<RagChunk & { embedding: number[] }>,
+  ): Promise<void> {
     return;
   }
 

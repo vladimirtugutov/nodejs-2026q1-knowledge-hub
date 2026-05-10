@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ArticleStatus } from '../../common/enums/article-status.enum';
 import { ChunkingOptions } from './chunking.types';
 import { RagChunk } from '../types/rag.types';
 
@@ -6,7 +7,7 @@ interface ChunkArticleInput {
   articleId: string;
   title: string;
   content: string;
-  status: 'draft' | 'published' | 'archived';
+  status: ArticleStatus;
   categoryId: string | null;
   tags: string[];
   updatedAt: Date | string;
@@ -22,10 +23,16 @@ export class ChunkingService {
   splitArticle(article: ChunkArticleInput): RagChunk[] {
     const fullText = `${article.title}\n\n${article.content}`.trim();
     const chunks: RagChunk[] = [];
+    const step = Math.max(
+      1,
+      this.options.chunkSize - this.options.chunkOverlap,
+    );
 
-    const step = Math.max(1, this.options.chunkSize - this.options.chunkOverlap);
-
-    for (let start = 0, index = 0; start < fullText.length; start += step, index += 1) {
+    for (
+      let start = 0, index = 0;
+      start < fullText.length;
+      start += step, index += 1
+    ) {
       const text = fullText.slice(start, start + this.options.chunkSize).trim();
 
       if (!text) {

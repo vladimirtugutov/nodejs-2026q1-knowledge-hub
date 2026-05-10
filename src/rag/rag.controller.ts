@@ -1,4 +1,12 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Post,
+} from '@nestjs/common';
 import { RagService } from './rag.service';
 import { RagIndexerService } from './rag-indexer.service';
 import { RagRetrieverService } from './rag-retriever.service';
@@ -45,5 +53,10 @@ export class RagController {
   @HttpCode(200)
   getHistory(@Param('conversationId') conversationId: string) {
     return this.ragService.getConversationHistory(conversationId);
+  }
+
+  @Get('index/stats')
+  getStats() {
+    return this.ragIndexerService.getCollectionStats();
   }
 }

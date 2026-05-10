@@ -15,12 +15,17 @@ export class GeminiService {
 
   constructor(private readonly configService: ConfigService) {
     this.apiKey = this.configService.getOrThrow<string>('GEMINI_API_KEY');
-    this.model = this.configService.get<string>('GEMINI_MODEL', 'gemini-2.0-flash');
+    this.model = this.configService.get<string>(
+      'GEMINI_MODEL',
+      'gemini-2.0-flash',
+    );
     this.embeddingModel = this.configService.get<string>(
       'GEMINI_EMBEDDING_MODEL',
       'text-embedding-004',
     );
-    this.timeoutMs = Number(this.configService.get<string>('AI_TIMEOUT_MS', '15000'));
+    this.timeoutMs = Number(
+      this.configService.get<string>('AI_TIMEOUT_MS', '15000'),
+    );
     this.baseUrl = this.configService.get<string>(
       'GEMINI_API_BASE_URL',
       'https://generativelanguage.googleapis.com/v1beta',
@@ -28,45 +33,55 @@ export class GeminiService {
   }
 
   async generateJson<T>(prompt: string, responseSchema?: object): Promise<T> {
-    const data = await this.requestWithRetry(this.buildModelUrl(this.model, 'generateContent'), {
-      contents: [
-        {
-          role: 'user',
-          parts: [{ text: prompt }],
+    const data = await this.requestWithRetry(
+      this.buildModelUrl(this.model, 'generateContent'),
+      {
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: prompt }],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.2,
+          responseMimeType: 'application/json',
+          ...(responseSchema ? { responseSchema } : {}),
         },
-      ],
-      generationConfig: {
-        temperature: 0.2,
-        responseMimeType: 'application/json',
-        ...(responseSchema ? { responseSchema } : {}),
       },
-    });
+    );
 
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!text || typeof text !== 'string') {
-      throw new ServiceUnavailableException('AI provider returned empty response');
+      throw new ServiceUnavailableException(
+        'AI provider returned empty response',
+      );
     }
 
     try {
       return JSON.parse(text) as T;
     } catch {
-      throw new ServiceUnavailableException('AI provider returned invalid JSON');
+      throw new ServiceUnavailableException(
+        'AI provider returned invalid JSON',
+      );
     }
   }
 
   async generateText(prompt: string): Promise<string> {
-    const data = await this.requestWithRetry(this.buildModelUrl(this.model, 'generateContent'), {
-      contents: [
-        {
-          role: 'user',
-          parts: [{ text: prompt }],
+    const data = await this.requestWithRetry(
+      this.buildModelUrl(this.model, 'generateContent'),
+      {
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: prompt }],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.2,
         },
-      ],
-      generationConfig: {
-        temperature: 0.2,
       },
-    });
+    );
 
     const text = data?.candidates?.[0]?.content?.parts
       ?.map((part: { text?: string }) => part.text ?? '')
@@ -74,7 +89,9 @@ export class GeminiService {
       .trim();
 
     if (!text) {
-      throw new ServiceUnavailableException('AI provider returned empty response');
+      throw new ServiceUnavailableException(
+        'AI provider returned empty response',
+      );
     }
 
     return text;
@@ -83,17 +100,22 @@ export class GeminiService {
   async embedText(text: string): Promise<number[]> {
     const modelName = this.normalizeModelName(this.embeddingModel);
 
-    const data = await this.requestWithRetry(this.buildModelUrl(modelName, 'embedContent'), {
-      model: `models/${modelName}`,
-      content: {
-        parts: [{ text }],
+    const data = await this.requestWithRetry(
+      this.buildModelUrl(modelName, 'embedContent'),
+      {
+        model: `models/${modelName}`,
+        content: {
+          parts: [{ text }],
+        },
       },
-    });
+    );
 
     const values = data?.embedding?.values;
 
     if (!Array.isArray(values)) {
-      throw new ServiceUnavailableException('AI provider returned invalid embedding');
+      throw new ServiceUnavailableException(
+        'AI provider returned invalid embedding',
+      );
     }
 
     return values;
@@ -143,7 +165,9 @@ export class GeminiService {
           });
 
           if (response.status === 401 || response.status === 403) {
-            throw new InternalServerErrorException('AI provider credentials are invalid');
+            throw new InternalServerErrorException(
+              'AI provider credentials are invalid',
+            );
           }
 
           throw new ServiceUnavailableException('AI provider is unavailable');

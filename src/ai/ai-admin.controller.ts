@@ -60,7 +60,10 @@ export class AiAdminController {
     try {
       return await this.aiService.generate(dto, user);
     } catch (error: unknown) {
-      const response = error as { getStatus?: () => number; getResponse?: () => unknown };
+      const response = error as {
+        getStatus?: () => number;
+        getResponse?: () => unknown;
+      };
       if (response?.getStatus?.() === 429) {
         const body = response.getResponse() as { retryAfter?: number };
         if (body?.retryAfter) {

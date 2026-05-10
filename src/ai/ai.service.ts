@@ -1,8 +1,4 @@
-import {
-  HttpException,
-  HttpStatus,
-  Injectable,
-} from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
 import { UserRole } from '@prisma/client';
@@ -15,7 +11,10 @@ import { AnalyzeArticleDto, AnalyzeTask } from './dto/analyze-article.dto';
 import { AnalyzeArticleResponseDto } from './dto/analyze-article-response.dto';
 import { GenerateDto } from './dto/generate.dto';
 import { GenerateResponseDto } from './dto/generate-response.dto';
-import { SummarizeArticleDto, SummaryLength } from './dto/summarize-article.dto';
+import {
+  SummarizeArticleDto,
+  SummaryLength,
+} from './dto/summarize-article.dto';
 import { SummarizeArticleResponseDto } from './dto/summarize-article-response.dto';
 import { TranslateArticleDto } from './dto/translate-article.dto';
 import { TranslateArticleResponseDto } from './dto/translate-article-response.dto';
@@ -47,7 +46,9 @@ export class AiService {
     private readonly aiContextService: AiContextService,
     private readonly configService: ConfigService,
   ) {
-    this.cacheTtlSec = Number(this.configService.get<string>('AI_CACHE_TTL_SEC', '300'));
+    this.cacheTtlSec = Number(
+      this.configService.get<string>('AI_CACHE_TTL_SEC', '300'),
+    );
   }
 
   async summarize(
@@ -61,7 +62,8 @@ export class AiService {
 
     const maxLength = dto.maxLength ?? SummaryLength.MEDIUM;
     const cacheKey = `summarize:${article.id}:${article.updatedAt.toISOString()}:${maxLength}`;
-    const cached = this.aiCacheService.get<SummarizeArticleResponseDto>(cacheKey);
+    const cached =
+      this.aiCacheService.get<SummarizeArticleResponseDto>(cacheKey);
 
     if (cached) {
       this.aiUsageService.trackCacheHit();
@@ -104,7 +106,8 @@ export class AiService {
     this.checkRateLimit(`translate:${user.userId}`);
 
     const cacheKey = `translate:${article.id}:${article.updatedAt.toISOString()}:${dto.targetLanguage}:${dto.sourceLanguage ?? 'auto'}`;
-    const cached = this.aiCacheService.get<TranslateArticleResponseDto>(cacheKey);
+    const cached =
+      this.aiCacheService.get<TranslateArticleResponseDto>(cacheKey);
 
     if (cached) {
       this.aiUsageService.trackCacheHit();
@@ -217,7 +220,9 @@ export class AiService {
     const article = await this.articleService.findOne(articleId);
 
     if (user.role !== UserRole.admin && article.authorId !== user.userId) {
-      throw new ForbiddenError('You can access AI operations only for your own articles');
+      throw new ForbiddenError(
+        'You can access AI operations only for your own articles',
+      );
     }
 
     return article;

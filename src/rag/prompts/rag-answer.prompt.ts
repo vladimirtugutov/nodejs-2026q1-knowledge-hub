@@ -12,7 +12,9 @@ export function buildRagAnswerPrompt({
   searchResults,
 }: BuildRagAnswerPromptParams): string {
   const historyText = history.length
-    ? history.map((item) => `${item.role.toUpperCase()}: ${item.content}`).join('\n')
+    ? history
+        .map((item) => `${item.role.toUpperCase()}: ${item.content}`)
+        .join('\n')
     : 'No previous conversation history.';
 
   const contextText = searchResults.length

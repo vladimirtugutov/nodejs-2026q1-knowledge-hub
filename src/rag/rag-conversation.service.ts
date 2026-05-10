@@ -5,7 +5,9 @@ import { ConversationMessage } from './types/rag.types';
 @Injectable()
 export class RagConversationService {
   private readonly conversations = new Map<string, ConversationMessage[]>();
-  private readonly maxMessages = Number(process.env.RAG_CONVERSATION_MAX_MESSAGES ?? 20);
+  private readonly maxMessages = Number(
+    process.env.RAG_CONVERSATION_MAX_MESSAGES ?? 20,
+  );
 
   createConversationId(): string {
     return randomUUID();
@@ -33,6 +35,8 @@ export class RagConversationService {
   }
 
   getOrCreateConversationId(conversationId?: string): string {
-    return conversationId?.trim() ? conversationId : this.createConversationId();
+    return conversationId?.trim()
+      ? conversationId
+      : this.createConversationId();
   }
 }
