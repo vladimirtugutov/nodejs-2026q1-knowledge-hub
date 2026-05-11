@@ -16,10 +16,13 @@ git clone {repository URL}
 ```
 npm install
 ```
+
 ## Docker
 
+```
 docker compose build --no-cache app
 docker compose up -d
+```
 
 ## Environment variables
 
@@ -61,10 +64,91 @@ More information:
 
 
 ## Running application
+To create categories and articles, your user needs the  admin  role. New users created via signup are regular users first, so the flow is: sign up, log in, promote the user to admin in Docker PostgreSQL, create a category, then create an article. This matches JWT Bearer auth flow for protected endpoints.
+
+1. Sign up
+Register a new user:
+```
+curl -X POST http://localhost:4000/auth/signup \
+  -H "Content-Type: application/json" \
+  -d '{
+    "login": "vova1",
+    "password": "password2"
+  }'
 
 ```
-npm start
+2. Log in
+Log in and get tokens:
 ```
+curl -X POST http://localhost:4000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "login": "vova1",
+    "password": "password2"
+  }'
+```
+The response will contain  accessToken  and  refreshToken . Use the  accessToken  in the  Authorization  header for all protected requests.
+Example response:
+```
+{
+  "accessToken": "YOUR_ACCESS_TOKEN",
+  "refreshToken": "YOUR_REFRESH_TOKEN"
+}
+
+```
+
+3. Grant admin role
+To be able to add categories and articles, promote the user to  admin  directly in the Docker PostgreSQL database:
+```
+docker exec -it knowledge-hub-db psql -U postgres -d knowledge_hub -c "UPDATE users SET role = 'admin' WHERE login = 'YOUR_LOGIN';"
+
+```
+4. Create a category
+After this you need to add category first. Create a category using a valid access token:
+```
+curl -X POST http://localhost:4000/category \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -d '{
+    "name": "TEST_CATEGORY",
+    "description": "Test category description"
+  }'
+
+```
+
+Example response:
+```
+{
+  "id": "3f2bc8a9-67a2-4686-8dad-a938733bb9aa",
+  "name": "TEST_CATEGORY",
+  "description": "Test category description"
+}
+
+```
+Copy the returned category  id  and use it in the next step.
+
+
+5. Create an article
+Create an article using the category  id  from the previous step and a valid access token:
+```
+curl -X POST http://localhost:4000/article \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -d '{
+    "title": "My published article",
+    "content": "Article 1 content goes here",
+    "status": "published",
+    "categoryId": "3f2bc8a9-67a2-4686-8dad-a938733bb9aa",
+    "tags": ["nestjs", "prisma", "postgres"]
+  }'
+
+```
+Notes
+	•	All protected endpoints require a valid JWT access token in the  Authorization  header using the Bearer scheme.
+	•	If you use a different login than  vova1 , replace it in the SQL update command.
+	•	If your access token expires, log in again or use the refresh endpoint to get a new token pair.
+
+## Swagger
 
 After starting the app on port (4000 as default) you can open
 in your browser OpenAPI documentation by typing http://localhost:4000/doc/.
@@ -84,6 +168,22 @@ After configuring `GEMINI_API_KEY` and starting the application, the following A
 
 - `POST /ai/generate`
 - `GET /ai/usage`
+
+## RAG endpoints
+
+### RAG endpoints
+
+- `POST /ai/rag/index`
+- `POST /ai/rag/search`
+- `POST /ai/rag/chat`
+- `DELETE /ai/rag/index/articles/:articleId`
+
+### RAG configuration
+
+•	Gemini generation + Gemini embeddings are configured via  .env .
+
+•	Chunking is configured via  RAG_CHUNK_SIZE  and  RAG_CHUNK_OVERLAP  environment variables.
+
 
 Open Swagger UI at:
 

@@ -10,7 +10,7 @@ services:
       db:
         condition: service_healthy
       vectordb:
-        condition: service_healthy
+        condition: service_started
     networks:
       - knowledge-hub-network
     healthcheck:
