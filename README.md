@@ -17,17 +17,45 @@ git clone {repository URL}
 npm install
 ```
 
-## Docker
-
-```
-docker compose build --no-cache app
-docker compose up -d
-```
-
 ## Environment variables
 
-Create a `.env` file in the project root.
+Create a `.env` file in the project root based on `.env.example`:
 
+```env
+# App
+PORT=4000
+NODE_ENV=development
+
+# Database
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/knowledge_hub?schema=public
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=knowledge_hub
+POSTGRES_HOST=db
+POSTGRES_PORT=5432
+
+# JWT
+JWT_SECRET=your_access_token_secret
+JWT_REFRESH_SECRET=your_refresh_token_secret
+JWT_ACCESS_TTL=15m
+JWT_REFRESH_TTL=7d
+
+# Gemini
+GEMINI_API_KEY=your_gemini_api_key
+GEMINI_MODEL=gemini-2.5-flash
+
+# Qdrant (vector DB)
+QDRANT_URL=http://localhost:6333
+QDRANT_COLLECTION=knowledge_hub
+
+# RAG chunking
+RAG_CHUNK_SIZE=500
+RAG_CHUNK_OVERLAP=50
+
+# Logging
+LOG_LEVEL=log
+LOG_MAX_FILE_SIZE=1024
+```
 ## Gemini AI setup
 
 This project uses the Google Gemini API for AI features.
@@ -61,6 +89,26 @@ If the API returns rate-limit or quota errors, verify your project quota and bil
 
 More information:
 - [Gemini API rate limits](https://ai.google.dev/gemini-api/docs/rate-limits)
+
+
+## Docker
+
+```
+docker compose build --no-cache app
+docker compose up -d
+```
+
+## Vector Database (Qdrant)
+
+This project uses [Qdrant](https://qdrant.tech/) as the vector store for RAG (Retrieval-Augmented Generation).
+
+Qdrant is included in `docker-compose.yml` and starts automatically with the application:
+
+```bash
+docker compose up -d
+```
+Qdrant dashboard will be available at: http://localhost:6333/dashboard
+The collection is created automatically on first index request.
 
 
 ## Running application
@@ -224,6 +272,54 @@ Open Swagger UI at:
   "sessionId": "demo-1"
 }
 ```
+
+## RAG indexing flow
+
+Before using `/ai/rag/search` or `/ai/rag/chat`, articles must be indexed into the vector store.
+
+### Index all articles
+
+```bash
+curl -X POST http://localhost:4000/ai/rag/index \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
+This will:
+	1.	Fetch all published articles from the database
+	2.	Split content into chunks (configured via  RAG_CHUNK_SIZE  and  RAG_CHUNK_OVERLAP )
+	3.	Generate embeddings via Gemini Embeddings API
+	4.	Store vectors in Qdrant with article metadata
+
+
+### Remove article from index
+
+```bash
+curl -X DELETE http://localhost:4000/ai/rag/index/articles/ARTICLE_ID \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
+
+### Semantic search
+
+```bash
+curl -X POST http://localhost:4000/ai/rag/search \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -d '{
+    "query": "How to use Prisma with NestJS?"
+  }'
+```
+
+### RAG chat (grounded answer + sources)
+
+```bash
+curl -X POST http://localhost:4000/ai/rag/chat \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -d '{
+    "question": "What is the best way to structure a NestJS application?"
+  }'
+```
+The response includes both the generated answer and the source article chunks used to ground it.
+
 
 ## Testing
 
